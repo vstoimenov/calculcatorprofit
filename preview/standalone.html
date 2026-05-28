@@ -982,6 +982,22 @@ const defaults = {
     maxReturnRate: 12,
     vatEnabled: true,
     vatRate: 20,
+    isVatRegistered: true,
+    baseVatRate: 20,
+    pricesIncludeVat: true,
+    canDeductInputVat: true,
+    country: "Bulgaria",
+    companyType: "EOOD",
+    corporateTaxRate: 10,
+    includeCorporateTaxForecast: true,
+    reverseChargeHandlingEnabled: false,
+    accountingCostMonthly: 160,
+    bankFeesMonthly: 20,
+    otherAdminCostsMonthly: 40,
+    yearlyAccountingClosingFee: 300,
+    payrollAccountingMonthly: 0,
+    otherAccountantFeesMonthly: 0,
+    reverseChargeExpensesMonthly: 120,
     monthlyFixedExpenses: 300
   },
   products: defaultProducts,
@@ -1006,6 +1022,14 @@ function normalizeState(data) {
     days: Array.isArray(data.days) ? data.days : []
   };
   if (!next.store.currency || next.store.currency === "BGN") next.store.currency = "EUR";
+  next.store.isVatRegistered = Boolean(next.store.isVatRegistered ?? next.store.vatEnabled);
+  next.store.baseVatRate = num(next.store.baseVatRate || next.store.vatRate || 20);
+  next.store.vatEnabled = next.store.isVatRegistered;
+  next.store.vatRate = next.store.baseVatRate;
+  next.store.pricesIncludeVat = next.store.pricesIncludeVat !== false;
+  next.store.canDeductInputVat = next.store.canDeductInputVat !== false;
+  if (!next.store.country) next.store.country = "Bulgaria";
+  if (!next.store.companyType) next.store.companyType = "EOOD";
   next.days = next.days.map((day) => {
     if (Array.isArray(day.items)) return day;
     const fallbackProduct = next.products[0] || base.products[0];
@@ -1116,14 +1140,122 @@ function unitCosts(product) {
   );
 }
 
-function vatFraction() {
-  if (!state.store.vatEnabled) return 0;
-  const rate = Math.max(0, num(state.store.vatRate));
+function taxSettings() {
+  return {
+    isVatRegistered: Boolean(state.store.isVatRegistered ?? state.store.vatEnabled),
+    baseVatRate: num(state.store.baseVatRate || state.store.vatRate || 20),
+    pricesIncludeVat: state.store.pricesIncludeVat !== false,
+    canDeductInputVat: state.store.canDeductInputVat !== false,
+    includeCorporateTaxForecast: Boolean(state.store.includeCorporateTaxForecast),
+    corporateTaxRate: num(state.store.corporateTaxRate || 10),
+    accountingCostMonthly: num(state.store.accountingCostMonthly),
+    bankFeesMonthly: num(state.store.bankFeesMonthly),
+    otherAdminCostsMonthly: num(state.store.otherAdminCostsMonthly),
+    yearlyAccountingClosingFee: num(state.store.yearlyAccountingClosingFee),
+    payrollAccountingMonthly: num(state.store.payrollAccountingMonthly),
+    otherAccountantFeesMonthly: num(state.store.otherAccountantFeesMonthly),
+    reverseChargeExpensesMonthly: num(state.store.reverseChargeExpensesMonthly),
+    reverseChargeHandlingEnabled: Boolean(state.store.reverseChargeHandlingEnabled)
+  };
+}
+
+function monthlyAccountingCosts() {
+  const settings = taxSettings();
+  return (
+    settings.accountingCostMonthly +
+    settings.bankFeesMonthly +
+    settings.otherAdminCostsMonthly +
+    settings.payrollAccountingMonthly +
+    settings.otherAccountantFeesMonthly +
+    safeDiv(settings.yearlyAccountingClosingFee, 12)
+  );
+}
+
+function vatFraction(rate = taxSettings().baseVatRate) {
+  if (!taxSettings().isVatRegistered) return 0;
+  rate = Math.max(0, num(rate));
   return rate ? rate / (100 + rate) : 0;
 }
 
-function vatPart(amount) {
-  return num(amount) * vatFraction();
+function vatPart(amount, rate = taxSettings().baseVatRate) {
+  return num(amount) * vatFraction(rate);
+}
+
+function calculateSalesVat(amount, options = taxSettings()) {
+  const vatRate = num(options.baseVatRate);
+  if (!options.isVatRegistered || !vatRate) {
+    return { grossSales: num(amount), netSales: num(amount), outputVat: 0 };
+  }
+  if (options.pricesIncludeVat) {
+    const grossSales = num(amount);
+    const netSales = grossSales / (1 + vatRate / 100);
+    return { grossSales, netSales, outputVat: grossSales - netSales };
+  }
+  const netSales = num(amount);
+  const outputVat = netSales * vatRate / 100;
+  return { grossSales: netSales + outputVat, netSales, outputVat };
+}
+
+function expenseVat(expense, settings = taxSettings()) {
+  const grossAmount = num(expense.grossAmount);
+  const vatRate = num(expense.vatRate || settings.baseVatRate);
+  const hasVat = Boolean(expense.hasVat);
+  const isReverseCharge = Boolean(expense.isReverseCharge);
+  let vatAmount = num(expense.vatAmount);
+  let netAmount = num(expense.netAmount);
+  if (hasVat && !vatAmount && vatRate) vatAmount = grossAmount * vatRate / (100 + vatRate);
+  if (!netAmount) netAmount = Math.max(0, grossAmount - vatAmount);
+  const inputVat = settings.isVatRegistered && settings.canDeductInputVat && hasVat && expense.isVatDeductible && !isReverseCharge ? vatAmount : 0;
+  return { ...expense, grossAmount, netAmount, vatAmount, inputVat, isReverseCharge };
+}
+
+function calculateInputVat(expenses, settings = taxSettings()) {
+  return expenses.map((expense) => expenseVat(expense, settings)).reduce((total, expense) => total + expense.inputVat, 0);
+}
+
+function vatStatus(vatPayable) {
+  if (vatPayable > 0) return "ДДС за плащане";
+  if (vatPayable < 0) return "ДДС кредит / за възстановяване";
+  return "Няма ДДС за плащане";
+}
+
+function calculateCorporateTax(netProfitBeforeTax) {
+  const settings = taxSettings();
+  if (!settings.includeCorporateTaxForecast) return { corporateTaxBase: 0, estimatedCorporateTax: 0, estimatedProfitAfterCorporateTax: netProfitBeforeTax };
+  const corporateTaxBase = Math.max(num(netProfitBeforeTax), 0);
+  const estimatedCorporateTax = corporateTaxBase * settings.corporateTaxRate / 100;
+  return {
+    corporateTaxBase,
+    estimatedCorporateTax,
+    estimatedProfitAfterCorporateTax: netProfitBeforeTax - estimatedCorporateTax
+  };
+}
+
+function accountingExpenseRows(date) {
+  const settings = taxSettings();
+  const days = daysInMonth(date);
+  const monthlyRows = [
+    ["accounting", "Счетоводна такса", settings.accountingCostMonthly, true, false, "Bulgaria"],
+    ["bank_fees", "Банкови такси", settings.bankFeesMonthly, false, false, "Bulgaria"],
+    ["accounting", "Годишно приключване", safeDiv(settings.yearlyAccountingClosingFee, 12) ?? 0, true, false, "Bulgaria"],
+    ["salary", "Payroll/accounting add-ons", settings.payrollAccountingMonthly, true, false, "Bulgaria"],
+    ["other", "Други административни разходи", settings.otherAdminCostsMonthly + settings.otherAccountantFeesMonthly, true, false, "Bulgaria"],
+    ["meta_ads", "Reverse charge реклама/софтуер", settings.reverseChargeExpensesMonthly, false, true, "EU"]
+  ];
+  return monthlyRows
+    .filter(([, , amount]) => amount > 0)
+    .map(([expenseCategory, name, amount, hasVat, isReverseCharge, supplierCountry]) => ({
+      name,
+      expenseCategory,
+      recurring: true,
+      recurringPeriod: "monthly",
+      supplierCountry,
+      grossAmount: amount / days,
+      vatRate: settings.baseVatRate,
+      hasVat,
+      isVatDeductible: hasVat,
+      isReverseCharge
+    }));
 }
 
 function calculateDay(day) {
@@ -1148,19 +1280,32 @@ function calculateDay(day) {
   const refunds = num(day.refunds);
   const returnedOrders = num(day.returnedOrders);
   const fixedExpenseShare = safeDiv(num(state.store.monthlyFixedExpenses), daysInMonth(day.date)) ?? 0;
-  const revenue = Math.max(0, grossSales - refunds);
-  const outputVat = vatPart(revenue);
-  const deductibleVat = vatPart(cogs + adSpendBase + otherExpenses + fixedExpenseShare);
-  const vatPayable = state.store.vatEnabled ? Math.max(0, outputVat - deductibleVat) : 0;
-  const vatCredit = state.store.vatEnabled ? Math.max(0, deductibleVat - outputVat) : 0;
-  const revenueExVat = revenue - outputVat;
-  const cogsExVat = cogs - vatPart(cogs);
-  const adSpendExVat = adSpendBase - vatPart(adSpendBase);
-  const otherExpensesExVat = otherExpenses - vatPart(otherExpenses);
-  const fixedExpenseExVat = fixedExpenseShare - vatPart(fixedExpenseShare);
+  const settings = taxSettings();
+  const salesVat = calculateSalesVat(Math.max(0, grossSales - refunds), settings);
+  const revenue = salesVat.grossSales;
+  const revenueExVat = salesVat.netSales;
+  const outputVat = salesVat.outputVat;
+  const operatingExpenses = [
+    { name: "Product costs", expenseCategory: "product_cost", grossAmount: cogs, vatRate: settings.baseVatRate, hasVat: true, isVatDeductible: true, isReverseCharge: false, supplierCountry: state.store.country },
+    { name: "Meta/Google/TikTok ads", expenseCategory: "meta_ads", grossAmount: adSpendBase, vatRate: settings.baseVatRate, hasVat: false, isVatDeductible: false, isReverseCharge: true, supplierCountry: "EU" },
+    { name: "Other daily expenses", expenseCategory: "other", grossAmount: otherExpenses, vatRate: settings.baseVatRate, hasVat: true, isVatDeductible: true, isReverseCharge: false, supplierCountry: state.store.country },
+    { name: "Fixed monthly expenses", expenseCategory: "other", grossAmount: fixedExpenseShare, vatRate: settings.baseVatRate, hasVat: true, isVatDeductible: true, isReverseCharge: false, supplierCountry: state.store.country },
+    ...accountingExpenseRows(day.date)
+  ].map((expense) => expenseVat(expense, settings));
+  const deductibleVat = operatingExpenses.reduce((total, expense) => total + expense.inputVat, 0);
+  const reverseChargeExpenses = operatingExpenses.filter((expense) => expense.isReverseCharge).reduce((total, expense) => total + expense.grossAmount, 0);
+  const vatBalance = outputVat - deductibleVat;
+  const vatPayable = settings.isVatRegistered ? Math.max(0, vatBalance) : 0;
+  const vatCredit = settings.isVatRegistered ? Math.max(0, -vatBalance) : 0;
+  const accountingExpenseShare = accountingExpenseRows(day.date).filter((expense) => !expense.isReverseCharge).reduce((total, expense) => total + expense.grossAmount, 0);
+  const cogsExVat = expenseVat(operatingExpenses[0], settings).netAmount;
+  const adSpendExVat = adSpendBase;
+  const otherExpensesExVat = operatingExpenses.slice(2).filter((expense) => !expense.isReverseCharge).reduce((total, expense) => total + expense.netAmount, 0);
   const grossProfit = revenueExVat - cogsExVat;
-  const netProfit = grossProfit - adSpendExVat - otherExpensesExVat - fixedExpenseExVat;
-  const totalCosts = cogsExVat + adSpendExVat + otherExpensesExVat + fixedExpenseExVat;
+  const netProfit = grossProfit - adSpendExVat - otherExpensesExVat;
+  const totalCosts = cogsExVat + adSpendExVat + otherExpensesExVat;
+  const netProfitAfterVatReserve = netProfit - vatPayable;
+  const corporateTax = calculateCorporateTax(netProfit);
   const aov = safeDiv(revenue, orders);
   const averageCogs = safeDiv(cogs, orders) ?? 0;
   const averageOther = safeDiv(otherExpensesExVat, orders) ?? 0;
@@ -1203,13 +1348,21 @@ function calculateDay(day) {
     refunds,
     returnedOrders,
     fixedExpenseShare,
+    accountingExpenseShare,
+    operatingExpenses,
     outputVat,
     deductibleVat,
     vatPayable,
     vatCredit,
+    vatStatus: vatStatus(vatBalance),
+    vatReserve: vatPayable,
+    reverseChargeExpenses,
     revenueExVat,
     grossProfit,
     netProfit,
+    netProfitBeforeTax: netProfit,
+    netProfitAfterVatReserve,
+    ...corporateTax,
     totalCosts,
     productLines,
     conversionRate,
@@ -1251,6 +1404,12 @@ function summary(rows) {
   const deductibleVat = sum(rows, "deductibleVat");
   const vatPayable = sum(rows, "vatPayable");
   const vatCredit = sum(rows, "vatCredit");
+  const vatReserve = sum(rows, "vatReserve");
+  const reverseChargeExpenses = sum(rows, "reverseChargeExpenses");
+  const accountingExpenseShare = sum(rows, "accountingExpenseShare");
+  const netProfitAfterVatReserve = sum(rows, "netProfitAfterVatReserve");
+  const estimatedCorporateTax = sum(rows, "estimatedCorporateTax");
+  const estimatedProfitAfterCorporateTax = sum(rows, "estimatedProfitAfterCorporateTax");
   return {
     revenue,
     orders,
@@ -1266,6 +1425,14 @@ function summary(rows) {
     deductibleVat,
     vatPayable,
     vatCredit,
+    vatReserve,
+    reverseChargeExpenses,
+    accountingExpenseShare,
+    netProfitBeforeTax: netProfit,
+    netProfitAfterVatReserve,
+    estimatedCorporateTax,
+    estimatedProfitAfterCorporateTax,
+    vatStatus: vatStatus(vatPayable - vatCredit),
     poas: safeDiv(netProfit, adSpendBase),
     roas: safeDiv(revenue, adSpendBase),
     margin: safeDiv(netProfit * 100, revenue),
@@ -1359,6 +1526,8 @@ function layout(content) {
     ["daily-input", "Дневно въвеждане"],
     ["daily-tracking", "Дневен отчет"],
     ["reports", "Отчети"],
+    ["reports/vat", "ДДС отчет"],
+    ["tax-accounting", "Данъци"],
     ["imports", "Импорт"],
     ["alerts", "Предупреждения"],
     ["calculators", "Калкулатори"],
@@ -1470,12 +1639,17 @@ function dashboard() {
     ${businessBrief(s, score)}
     ${dashboardShowcase(s, score)}
     <section class="grid cards">
+      ${card("Брутна печалба", money(s.grossProfit), "Оборот без ДДС - COGS без ДДС")}
       ${card("Чиста печалба", money(s.netProfit), "Реална печалба след себестойност, доставка, реклама и връщания")}
+      ${card("Печалба преди данък", money(s.netProfitBeforeTax), "Оперативна печалба преди корпоративен данък")}
+      ${card("След ДДС резерв", money(s.netProfitAfterVatReserve), "Cash view: печалба минус ДДС за заделяне")}
+      ${card("Корп. данък", money(s.estimatedCorporateTax), "Ориентировъчен корпоративен данък")}
+      ${card("След корп. данък", money(s.estimatedProfitAfterCorporateTax), "Прогнозна печалба след корпоративен данък")}
       ${card("POAS", ratio(s.poas), "Печалба за всяко 1 евро рекламен разход")}
       ${card("Марж", pct(s.margin), "Чиста печалба / оборот")}
       ${card("Здраве на бизнеса", `${score}/100`, businessHealthLabel(score))}
       ${card("ROAS", ratio(s.roas), "Оборот / рекламен разход")}
-      ${card("ДДС за плащане", money(s.vatPayable), state.store.vatEnabled ? `Начислено ${money(s.outputVat)} - кредит ${money(s.deductibleVat)}` : "ДДС е изключено")}
+      ${card("ДДС резерв", money(s.vatReserve), state.store.isVatRegistered ? `Начислено ${money(s.outputVat)} - кредит ${money(s.deductibleVat)}` : "ДДС е изключено")}
     </section>
     <section class="grid two" style="margin-top:14px">
       <div class="panel">
@@ -1933,6 +2107,180 @@ function reportsPage() {
   `);
 }
 
+function expenseBreakdown(rows) {
+  const map = new Map();
+  rows.flatMap((row) => row.operatingExpenses || []).forEach((expense) => {
+    const key = expense.expenseCategory || "other";
+    const current = map.get(key) || { category: key, grossAmount: 0, netAmount: 0, vatAmount: 0, inputVat: 0, reverseCharge: 0 };
+    current.grossAmount += num(expense.grossAmount);
+    current.netAmount += num(expense.netAmount);
+    current.vatAmount += num(expense.vatAmount);
+    current.inputVat += num(expense.inputVat);
+    if (expense.isReverseCharge) current.reverseCharge += num(expense.grossAmount);
+    map.set(key, current);
+  });
+  return [...map.values()].sort((a, b) => b.grossAmount - a.grossAmount);
+}
+
+function vatReportPage() {
+  const rows = calculatedDays();
+  const s = summary(rows);
+  const expenses = expenseBreakdown(rows);
+  return layout(`
+    ${topbar("ДДС отчет", "Прогноза за ДДС, данъчен кредит, reverse charge и cash reserve.")}
+    ${taxDisclaimer()}
+    <section class="grid cards" style="margin-top:14px">
+      ${card("Брутни продажби", money(s.revenue))}
+      ${card("Нетни продажби", money(s.revenue - s.outputVat))}
+      ${card("Начислено ДДС", money(s.outputVat))}
+      ${card("Данъчен кредит", money(s.deductibleVat))}
+      ${card("ДДС за плащане", money(s.vatPayable))}
+      ${card("ДДС кредит", money(s.vatCredit))}
+      ${card("ДДС резерв", money(s.vatReserve), "Сума, която да се задели като cash reserve")}
+      ${card("Reverse charge", money(s.reverseChargeExpenses), "Не се третира като нормално местно ДДС")}
+    </section>
+    <section class="grid two" style="margin-top:14px">
+      <div class="panel">
+        <h2>VAT status</h2>
+        <div class="alert ${s.vatPayable > 0 ? "warn" : "good"}">
+          <strong>${s.vatStatus}</strong><br>
+          ${s.vatPayable > 0 ? `Задели приблизително ${money(s.vatReserve)} за ДДС плащане.` : `Има ориентировъчен ДДС кредит ${money(s.vatCredit)}.`}
+        </div>
+        <div class="alert warn" style="margin-top:10px">
+          <strong>Reverse charge внимание</strong><br>
+          Разходите към чуждестранни EU доставчици, например Meta Ads или software, са отделени. Третирането им трябва да се потвърди със счетоводител.
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Настройки за периода</h2>
+        <p class="explain">
+          Държава: ${state.store.country}. Фирма: ${state.store.companyType || "-"}.
+          ДДС регистрация: ${taxSettings().isVatRegistered ? "Да" : "Не"}.
+          ДДС ставка: ${taxSettings().baseVatRate}%.
+          Цените ${taxSettings().pricesIncludeVat ? "включват" : "не включват"} ДДС.
+        </p>
+        <button class="btn secondary" onclick="navigate('tax-accounting')">Редактирай данъчни настройки</button>
+      </div>
+    </section>
+    <section class="panel" style="margin-top:14px">
+      <h2>ДДС по разходни категории</h2>
+      ${expenseVatTable(expenses)}
+    </section>
+  `);
+}
+
+function expenseVatTable(rows) {
+  if (!rows.length) return `<p class="muted">Няма разходи за ДДС отчет.</p>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Категория</th><th>Брутно</th><th>Нетно</th><th>ДДС по фактури</th><th>Данъчен кредит</th><th>Reverse charge</th></tr></thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              <td>${row.category}</td>
+              <td>${money(row.grossAmount)}</td>
+              <td>${money(row.netAmount)}</td>
+              <td>${money(row.vatAmount)}</td>
+              <td>${money(row.inputVat)}</td>
+              <td>${money(row.reverseCharge)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function taxAccountingPage() {
+  const rows = calculatedDays();
+  const s = summary(rows);
+  return layout(`
+    ${topbar("Данъци и счетоводство", "Настройки за ДДС, корпоративен данък, счетоводни и административни разходи.")}
+    ${taxDisclaimer()}
+    <section class="grid cards" style="margin-top:14px">
+      ${card("Net Profit Before Tax", money(s.netProfitBeforeTax))}
+      ${card("Net Profit After VAT Reserve", money(s.netProfitAfterVatReserve))}
+      ${card("Estimated Corporate Tax", money(s.estimatedCorporateTax))}
+      ${card("After Corporate Tax", money(s.estimatedProfitAfterCorporateTax))}
+      ${card("Accounting/admin monthly", money(monthlyAccountingCosts()))}
+    </section>
+    <section class="panel" style="margin-top:14px">
+      <form onsubmit="saveTaxSettings(event)">
+        <div class="form-grid">
+          ${settingInput("country", "Държава", state.store.country, "text")}
+          ${settingInput("companyType", "Тип фирма", state.store.companyType || "", "text")}
+          <label>Регистрация по ДДС
+            <select name="isVatRegistered">
+              <option value="true" ${taxSettings().isVatRegistered ? "selected" : ""}>Да</option>
+              <option value="false" ${!taxSettings().isVatRegistered ? "selected" : ""}>Не</option>
+            </select>
+          </label>
+          ${settingInput("baseVatRate", "Основна ДДС ставка %", taxSettings().baseVatRate)}
+          <label>Цените включват ДДС
+            <select name="pricesIncludeVat">
+              <option value="true" ${taxSettings().pricesIncludeVat ? "selected" : ""}>Да</option>
+              <option value="false" ${!taxSettings().pricesIncludeVat ? "selected" : ""}>Не</option>
+            </select>
+          </label>
+          <label>Право на данъчен кредит
+            <select name="canDeductInputVat">
+              <option value="true" ${taxSettings().canDeductInputVat ? "selected" : ""}>Да</option>
+              <option value="false" ${!taxSettings().canDeductInputVat ? "selected" : ""}>Не</option>
+            </select>
+          </label>
+          <label>Прогноза корпоративен данък
+            <select name="includeCorporateTaxForecast">
+              <option value="true" ${taxSettings().includeCorporateTaxForecast ? "selected" : ""}>Да</option>
+              <option value="false" ${!taxSettings().includeCorporateTaxForecast ? "selected" : ""}>Не</option>
+            </select>
+          </label>
+          ${settingInput("corporateTaxRate", "Корпоративен данък %", taxSettings().corporateTaxRate)}
+          ${settingInput("accountingCostMonthly", "Месечна счетоводна такса", taxSettings().accountingCostMonthly)}
+          ${settingInput("yearlyAccountingClosingFee", "Годишно приключване", taxSettings().yearlyAccountingClosingFee)}
+          ${settingInput("payrollAccountingMonthly", "Payroll/accounting add-ons месечно", taxSettings().payrollAccountingMonthly)}
+          ${settingInput("bankFeesMonthly", "Банкови такси месечно", taxSettings().bankFeesMonthly)}
+          ${settingInput("otherAdminCostsMonthly", "Други admin разходи месечно", taxSettings().otherAdminCostsMonthly)}
+          ${settingInput("otherAccountantFeesMonthly", "Други счетоводни такси месечно", taxSettings().otherAccountantFeesMonthly)}
+          ${settingInput("reverseChargeExpensesMonthly", "Reverse charge разходи месечно", taxSettings().reverseChargeExpensesMonthly)}
+        </div>
+        <button class="btn" style="margin-top:16px">Запази данъчните настройки</button>
+      </form>
+    </section>
+  `);
+}
+
+function saveTaxSettings(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target).entries());
+  state.store = {
+    ...state.store,
+    country: data.country || "Bulgaria",
+    companyType: data.companyType || "",
+    isVatRegistered: data.isVatRegistered === "true",
+    vatEnabled: data.isVatRegistered === "true",
+    baseVatRate: num(data.baseVatRate),
+    vatRate: num(data.baseVatRate),
+    pricesIncludeVat: data.pricesIncludeVat === "true",
+    canDeductInputVat: data.canDeductInputVat === "true",
+    includeCorporateTaxForecast: data.includeCorporateTaxForecast === "true",
+    corporateTaxRate: num(data.corporateTaxRate),
+    accountingCostMonthly: num(data.accountingCostMonthly),
+    yearlyAccountingClosingFee: num(data.yearlyAccountingClosingFee),
+    payrollAccountingMonthly: num(data.payrollAccountingMonthly),
+    bankFeesMonthly: num(data.bankFeesMonthly),
+    otherAdminCostsMonthly: num(data.otherAdminCostsMonthly),
+    otherAccountantFeesMonthly: num(data.otherAccountantFeesMonthly),
+    reverseChargeExpensesMonthly: num(data.reverseChargeExpensesMonthly)
+  };
+  saveState();
+  render();
+}
+
+function taxDisclaimer() {
+  return `<section class="alert warn"><strong>Важно</strong><br>Този модул показва ориентировъчни ДДС, данъчни и счетоводни прогнози за управление на cash flow. Не заменя лицензиран счетоводител или данъчна консултация.</section>`;
+}
+
 function periodKey(row, type) {
   if (type === "day") return row.date;
   const date = new Date(`${row.date}T00:00:00`);
@@ -2162,7 +2510,13 @@ function buildAlerts(rows) {
   const s = summary(rows);
   const alerts = [];
   if (!state.products.length) alerts.push({ type: "bad", title: "Няма продукти", body: "Добави продукти с цена и фиксирани разходи, за да работи печалбата." });
-  if (!state.store.vatEnabled) alerts.push({ type: "warn", title: "ДДС е изключено", body: "Ако магазинът е регистриран по ДДС, включи настройката, за да виждаш ориентировъчно ДДС за плащане." });
+  if (!taxSettings().isVatRegistered) alerts.push({ type: "warn", title: "ДДС е изключено", body: "Ако магазинът е регистриран по ДДС, включи настройката, за да виждаш ориентировъчно ДДС за плащане." });
+  if (taxSettings().isVatRegistered && !taxSettings().baseVatRate) alerts.push({ type: "bad", title: "Липсва ДДС ставка", body: "Магазинът е маркиран като регистриран по ДДС, но няма зададен процент." });
+  if (state.store.pricesIncludeVat === undefined) alerts.push({ type: "warn", title: "Не е ясно дали цените включват ДДС", body: "Това влияе на нетните продажби и начисленото ДДС." });
+  if (!taxSettings().canDeductInputVat && taxSettings().isVatRegistered) alerts.push({ type: "warn", title: "Данъчният кредит е изключен", body: "Разходите няма да намаляват прогнозното ДДС за плащане." });
+  if (s.reverseChargeExpenses > 0) alerts.push({ type: "warn", title: "Reverse charge разходи", body: "Има Meta/Google/TikTok или software разходи, отделени като reverse charge. Провери третирането със счетоводител." });
+  if (s.vatPayable > Math.max(1, s.netProfitBeforeTax) * 0.45) alerts.push({ type: "warn", title: "Висок ДДС резерв спрямо печалбата", body: "ДДС заделянето е високо спрямо текущата печалба. Следи cash flow преди скалиране." });
+  if (state.products.some((product) => unitCosts(product) > 0) && taxSettings().isVatRegistered) alerts.push({ type: "warn", title: "Провери ДДС статуса на продуктовите разходи", body: "В MVP продуктови разходи се приемат като брутни и приспадаеми. За реална счетоводна точност добави фактурен ДДС статус." });
   if (!rows.length) alerts.push({ type: "warn", title: "Липсват дневни данни", body: "Добави дневни продажби, за да видиш реалната печалба." });
   if (rows.some((row) => !row.orders || !row.revenue)) alerts.push({ type: "warn", title: "Има дни без продажби", body: "Провери дали за всеки ден са избрани продукти и бройки." });
   if (state.products.some((product) => unitCosts(product) <= 0)) alerts.push({ type: "warn", title: "Продукт с непълни разходи", body: "Има продукт без себестойност, доставка, опаковка или такси. Това може да надцени печалбата." });
@@ -2183,6 +2537,7 @@ function calculators() {
       ${calculatorPanel("POAS калкулатор", "Чиста печалба", "Рекламен разход", "calcPoas", "POAS показва печалба за 1 евро рекламен разход.")}
       ${profitCalculator()}
       ${breakevenCalculator()}
+      ${vatCalculatorPanel()}
     </section>
   `);
 }
@@ -2225,6 +2580,45 @@ function breakevenCalculator() {
   `;
 }
 
+function vatCalculatorPanel() {
+  const settings = taxSettings();
+  return `
+    <div class="panel">
+      <h2>ДДС калкулатор</h2>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <label>Продажби<input id="vat-gross-sales" type="number" step="0.01" value="12000" oninput="calcVat()"></label>
+        <label>Цените включват ДДС
+          <select id="vat-prices-include" onchange="calcVat()">
+            <option value="true" ${settings.pricesIncludeVat ? "selected" : ""}>Да</option>
+            <option value="false" ${!settings.pricesIncludeVat ? "selected" : ""}>Не</option>
+          </select>
+        </label>
+        <label>ДДС %<input id="vat-rate-calc" type="number" step="0.01" value="${settings.baseVatRate}" oninput="calcVat()"></label>
+        <label>Данъчен кредит от разходи<input id="vat-input-vat" type="number" step="0.01" value="850" oninput="calcVat()"></label>
+        <label>Reverse charge разходи<input id="vat-reverse-charge" type="number" step="0.01" value="${settings.reverseChargeExpensesMonthly}" oninput="calcVat()"></label>
+        <label>Бележки<textarea id="vat-notes" rows="3" placeholder="Meta Ads, software, чуждестранни доставчици..."></textarea></label>
+      </div>
+      <div id="vat-calc-out" class="alert warn" style="margin-top:14px">Въведи стойности, за да видиш прогнозата.</div>
+      <p class="explain">Ориентировъчна сметка. Reverse charge третиране трябва да се провери със счетоводител.</p>
+    </div>
+  `;
+}
+
+function vatCalculatorPage() {
+  return layout(`
+    ${topbar("ДДС калкулатор", "Самостоятелен калкулатор за sales VAT, input VAT и VAT reserve.")}
+    ${taxDisclaimer()}
+    <section class="grid two" style="margin-top:14px">
+      ${vatCalculatorPanel()}
+      <div class="panel">
+        <h2>Как да се чете резултатът</h2>
+        <p class="explain">Ако цените включват ДДС, системата изважда ДДС частта от брутните продажби. Ако цените не включват ДДС, системата добавя ДДС върху нетните продажби. Данъчният кредит се приспада само когато разходите са с ДДС и са приспадаеми.</p>
+        <div class="alert warn"><strong>Reverse charge</strong><br>Reverse charge разходите се показват отделно и не се броят автоматично като нормален местен данъчен кредит.</div>
+      </div>
+    </section>
+  `);
+}
+
 function calcRoas() {
   const revenue = num(document.getElementById("calcRoas-a").value);
   const spend = num(document.getElementById("calcRoas-b").value);
@@ -2245,6 +2639,26 @@ function calcBreakeven() {
   document.getElementById("be-out").textContent = maxCpa > 0 ? `Макс. CPA: ${money(maxCpa)} | Break-even ROAS: ${roas.toFixed(2)}` : "Няма място за печеливш рекламен разход";
 }
 
+function calcVat() {
+  const amount = num(document.getElementById("vat-gross-sales").value);
+  const pricesIncludeVat = document.getElementById("vat-prices-include").value === "true";
+  const baseVatRate = num(document.getElementById("vat-rate-calc").value);
+  const inputVat = num(document.getElementById("vat-input-vat").value);
+  const reverseCharge = num(document.getElementById("vat-reverse-charge").value);
+  const sales = calculateSalesVat(amount, { isVatRegistered: true, pricesIncludeVat, baseVatRate });
+  const payable = sales.outputVat - inputVat;
+  const status = vatStatus(payable);
+  document.getElementById("vat-calc-out").innerHTML = `
+    <strong>${status}</strong><br>
+    Нетни продажби: ${money(sales.netSales)}<br>
+    Начислено ДДС: ${money(sales.outputVat)}<br>
+    Данъчен кредит: ${money(inputVat)}<br>
+    Прогнозно ДДС за плащане/кредит: ${money(payable)}<br>
+    ДДС резерв: ${money(Math.max(0, payable))}<br>
+    Reverse charge разходи за преглед: ${money(reverseCharge)}
+  `;
+}
+
 function settings() {
   return layout(`
     ${topbar("Настройки", "Настрой целите, които се използват за предупреждения и статуси. Основната валута е EUR.")}
@@ -2259,11 +2673,11 @@ function settings() {
           ${settingInput("maxReturnRate", "Макс. процент връщания %", state.store.maxReturnRate)}
           <label>Регистрация по ДДС
             <select name="vatEnabled">
-              <option value="true" ${state.store.vatEnabled ? "selected" : ""}>Да</option>
-              <option value="false" ${!state.store.vatEnabled ? "selected" : ""}>Не</option>
+              <option value="true" ${taxSettings().isVatRegistered ? "selected" : ""}>Да</option>
+              <option value="false" ${!taxSettings().isVatRegistered ? "selected" : ""}>Не</option>
             </select>
           </label>
-          ${settingInput("vatRate", "ДДС процент %", state.store.vatRate)}
+          ${settingInput("vatRate", "ДДС процент %", taxSettings().baseVatRate)}
           ${settingInput("monthlyFixedExpenses", "Фиксирани месечни разходи EUR", state.store.monthlyFixedExpenses)}
         </div>
         <button class="btn" style="margin-top:16px">Запази настройките</button>
@@ -2290,7 +2704,9 @@ function saveSettings(event) {
     maxCpa: num(data.maxCpa),
     maxReturnRate: num(data.maxReturnRate),
     vatEnabled: data.vatEnabled === "true",
+    isVatRegistered: data.vatEnabled === "true",
     vatRate: num(data.vatRate),
+    baseVatRate: num(data.vatRate),
     monthlyFixedExpenses: num(data.monthlyFixedExpenses)
   };
   saveState();
@@ -2355,9 +2771,12 @@ function render() {
     "daily-input": dailyInput,
     "daily-tracking": dailyTracking,
     reports: reportsPage,
+    "reports/vat": vatReportPage,
+    "tax-accounting": taxAccountingPage,
     imports: importsPage,
     alerts: alertsPage,
     calculators,
+    "calculators/vat": vatCalculatorPage,
     settings
   };
   app.innerHTML = (routes[route] || dashboard)();
