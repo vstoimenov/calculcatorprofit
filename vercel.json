@@ -1,0 +1,11 @@
+{
+  "installCommand": "echo \"Static investor demo: skipping dependency install\"",
+  "buildCommand": "node scripts/build-static-demo.mjs",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
