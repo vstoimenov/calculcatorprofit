@@ -980,6 +980,8 @@ const defaults = {
     minRoas: 2,
     maxCpa: 18,
     maxReturnRate: 12,
+    vatEnabled: true,
+    vatRate: 20,
     monthlyFixedExpenses: 300
   },
   products: defaultProducts,
@@ -1114,6 +1116,16 @@ function unitCosts(product) {
   );
 }
 
+function vatFraction() {
+  if (!state.store.vatEnabled) return 0;
+  const rate = Math.max(0, num(state.store.vatRate));
+  return rate ? rate / (100 + rate) : 0;
+}
+
+function vatPart(amount) {
+  return num(amount) * vatFraction();
+}
+
 function calculateDay(day) {
   const items = Array.isArray(day.items) ? day.items : [];
   const productLines = items
@@ -1129,19 +1141,29 @@ function calculateDay(day) {
 
   const visits = num(day.visits);
   const orders = productLines.reduce((total, line) => total + line.quantity, 0);
-  const revenue = productLines.reduce((total, line) => total + line.revenue, 0);
+  const grossSales = productLines.reduce((total, line) => total + line.revenue, 0);
   const cogs = productLines.reduce((total, line) => total + line.cogs, 0);
   const adSpendBase = num(day.adSpend);
   const otherExpenses = num(day.otherExpenses);
   const refunds = num(day.refunds);
   const returnedOrders = num(day.returnedOrders);
   const fixedExpenseShare = safeDiv(num(state.store.monthlyFixedExpenses), daysInMonth(day.date)) ?? 0;
-  const grossProfit = revenue - cogs;
-  const netProfit = grossProfit - adSpendBase - otherExpenses - refunds - fixedExpenseShare;
-  const totalCosts = cogs + adSpendBase + otherExpenses + refunds + fixedExpenseShare;
+  const revenue = Math.max(0, grossSales - refunds);
+  const outputVat = vatPart(revenue);
+  const deductibleVat = vatPart(cogs + adSpendBase + otherExpenses + fixedExpenseShare);
+  const vatPayable = state.store.vatEnabled ? Math.max(0, outputVat - deductibleVat) : 0;
+  const vatCredit = state.store.vatEnabled ? Math.max(0, deductibleVat - outputVat) : 0;
+  const revenueExVat = revenue - outputVat;
+  const cogsExVat = cogs - vatPart(cogs);
+  const adSpendExVat = adSpendBase - vatPart(adSpendBase);
+  const otherExpensesExVat = otherExpenses - vatPart(otherExpenses);
+  const fixedExpenseExVat = fixedExpenseShare - vatPart(fixedExpenseShare);
+  const grossProfit = revenueExVat - cogsExVat;
+  const netProfit = grossProfit - adSpendExVat - otherExpensesExVat - fixedExpenseExVat;
+  const totalCosts = cogsExVat + adSpendExVat + otherExpensesExVat + fixedExpenseExVat;
   const aov = safeDiv(revenue, orders);
   const averageCogs = safeDiv(cogs, orders) ?? 0;
-  const averageOther = safeDiv(otherExpenses + refunds, orders) ?? 0;
+  const averageOther = safeDiv(otherExpensesExVat, orders) ?? 0;
   const breakevenCpa = (aov ?? 0) - averageCogs - averageOther;
   const breakevenRoas = breakevenCpa > 0 && aov ? aov / breakevenCpa : null;
   const margin = safeDiv(netProfit * 100, revenue);
@@ -1173,6 +1195,7 @@ function calculateDay(day) {
     ...day,
     visits,
     orders,
+    grossSales,
     revenue,
     cogs,
     adSpendBase,
@@ -1180,6 +1203,11 @@ function calculateDay(day) {
     refunds,
     returnedOrders,
     fixedExpenseShare,
+    outputVat,
+    deductibleVat,
+    vatPayable,
+    vatCredit,
+    revenueExVat,
     grossProfit,
     netProfit,
     totalCosts,
@@ -1219,6 +1247,10 @@ function summary(rows) {
   const totalCosts = sum(rows, "totalCosts");
   const returnedOrders = sum(rows, "returnedOrders");
   const fixedExpenseShare = sum(rows, "fixedExpenseShare");
+  const outputVat = sum(rows, "outputVat");
+  const deductibleVat = sum(rows, "deductibleVat");
+  const vatPayable = sum(rows, "vatPayable");
+  const vatCredit = sum(rows, "vatCredit");
   return {
     revenue,
     orders,
@@ -1230,6 +1262,10 @@ function summary(rows) {
     totalCosts,
     returnedOrders,
     fixedExpenseShare,
+    outputVat,
+    deductibleVat,
+    vatPayable,
+    vatCredit,
     poas: safeDiv(netProfit, adSpendBase),
     roas: safeDiv(revenue, adSpendBase),
     margin: safeDiv(netProfit * 100, revenue),
@@ -1439,6 +1475,7 @@ function dashboard() {
       ${card("Марж", pct(s.margin), "Чиста печалба / оборот")}
       ${card("Здраве на бизнеса", `${score}/100`, businessHealthLabel(score))}
       ${card("ROAS", ratio(s.roas), "Оборот / рекламен разход")}
+      ${card("ДДС за плащане", money(s.vatPayable), state.store.vatEnabled ? `Начислено ${money(s.outputVat)} - кредит ${money(s.deductibleVat)}` : "ДДС е изключено")}
     </section>
     <section class="grid two" style="margin-top:14px">
       <div class="panel">
@@ -1462,6 +1499,8 @@ function dashboard() {
           ${card("Оборот", money(s.revenue))}
           ${card("Рекламен разход", money(s.adSpendBase))}
           ${card("Разпределени месечни разходи", money(s.fixedExpenseShare))}
+          ${card("ДДС за плащане", money(s.vatPayable))}
+          ${card("ДДС кредит", money(s.vatCredit))}
           ${card("Поръчки / бройки", s.orders.toLocaleString("bg-BG"))}
           ${card("CPA", s.cpa === null ? "-" : money(s.cpa))}
         </div>
@@ -1486,7 +1525,7 @@ function dashboardShowcase(s, score) {
         <div class="glow-inner">
           <span class="badge">Profit-first insight</span>
           <h2>${s.netProfit >= 0 ? "Магазинът е печеливш за периода." : "Магазинът губи пари за периода."}</h2>
-          <p>Чиста печалба ${money(s.netProfit)}, марж ${pct(s.margin)} и POAS ${ratio(s.poas)}. Това е същият визуален блок като новия React GlowCard, адаптиран за статичния investor demo.</p>
+          <p>Чиста печалба ${money(s.netProfit)}, марж ${pct(s.margin)}, POAS ${ratio(s.poas)} и ориентировъчно ДДС за плащане ${money(s.vatPayable)}. Това е profit-first поглед след фиксирани продуктови разходи, реклама и ДДС.</p>
           <div class="mini-stat-row">
             <span>Net Profit <strong>${money(s.netProfit)}</strong></span>
             <span>POAS <strong>${ratio(s.poas)}</strong></span>
@@ -1800,7 +1839,7 @@ function dailyTable(rows) {
       <table>
         <thead>
           <tr>
-            <th>Дата</th><th>Продукти</th><th>Посещения</th><th>Бройки</th><th>Конв.</th><th>Оборот</th><th>Реклама</th><th>CPA</th><th>AOV</th><th>ROAS</th><th>BE ROAS</th><th>Разходи продукти</th><th>Месечни разходи</th><th>Брутна печалба</th><th>Чиста печалба</th><th>POAS</th><th>Марж</th><th>Връщания</th><th>Статус</th>
+            <th>Дата</th><th>Продукти</th><th>Посещения</th><th>Бройки</th><th>Конв.</th><th>Оборот</th><th>Реклама</th><th>CPA</th><th>AOV</th><th>ROAS</th><th>BE ROAS</th><th>Разходи продукти</th><th>Месечни разходи</th><th>ДДС начислено</th><th>ДДС кредит</th><th>ДДС за плащане</th><th>Брутна печалба</th><th>Чиста печалба</th><th>POAS</th><th>Марж</th><th>Връщания</th><th>Статус</th>
           </tr>
         </thead>
         <tbody>
@@ -1819,6 +1858,9 @@ function dailyTable(rows) {
               <td>${ratio(row.breakevenRoas)}</td>
               <td>${money(row.cogs)}</td>
               <td>${money(row.fixedExpenseShare)}</td>
+              <td>${money(row.outputVat)}</td>
+              <td>${money(row.deductibleVat)}</td>
+              <td>${money(row.vatPayable)}</td>
               <td>${money(row.grossProfit)}</td>
               <td>${money(row.netProfit)}</td>
               <td>${ratio(row.poas)}</td>
@@ -1866,6 +1908,7 @@ function reportsPage() {
       ${card("Марж", pct(s.margin))}
       ${card("POAS", ratio(s.poas))}
       ${card("Връщания", pct(s.returnRate))}
+      ${card("ДДС за плащане", money(s.vatPayable))}
     </section>
     <section class="grid two" style="margin-top:14px">
       <div class="panel">
@@ -1912,7 +1955,7 @@ function periodReport(rows, type) {
   return `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Период</th><th>Оборот</th><th>Реклама</th><th>Разходи</th><th>Чиста печалба</th><th>Марж</th><th>POAS</th></tr></thead>
+        <thead><tr><th>Период</th><th>Оборот</th><th>Реклама</th><th>Разходи</th><th>ДДС за плащане</th><th>Чиста печалба</th><th>Марж</th><th>POAS</th></tr></thead>
         <tbody>
           ${entries.map((entry) => `
             <tr>
@@ -1920,6 +1963,7 @@ function periodReport(rows, type) {
               <td>${money(entry.revenue)}</td>
               <td>${money(entry.adSpendBase)}</td>
               <td>${money(entry.totalCosts)}</td>
+              <td>${money(entry.vatPayable)}</td>
               <td>${money(entry.netProfit)}</td>
               <td>${pct(entry.margin)}</td>
               <td>${ratio(entry.poas)}</td>
@@ -2118,6 +2162,7 @@ function buildAlerts(rows) {
   const s = summary(rows);
   const alerts = [];
   if (!state.products.length) alerts.push({ type: "bad", title: "Няма продукти", body: "Добави продукти с цена и фиксирани разходи, за да работи печалбата." });
+  if (!state.store.vatEnabled) alerts.push({ type: "warn", title: "ДДС е изключено", body: "Ако магазинът е регистриран по ДДС, включи настройката, за да виждаш ориентировъчно ДДС за плащане." });
   if (!rows.length) alerts.push({ type: "warn", title: "Липсват дневни данни", body: "Добави дневни продажби, за да видиш реалната печалба." });
   if (rows.some((row) => !row.orders || !row.revenue)) alerts.push({ type: "warn", title: "Има дни без продажби", body: "Провери дали за всеки ден са избрани продукти и бройки." });
   if (state.products.some((product) => unitCosts(product) <= 0)) alerts.push({ type: "warn", title: "Продукт с непълни разходи", body: "Има продукт без себестойност, доставка, опаковка или такси. Това може да надцени печалбата." });
@@ -2212,10 +2257,18 @@ function settings() {
           ${settingInput("minRoas", "Минимален ROAS", state.store.minRoas)}
           ${settingInput("maxCpa", "Максимален CPA", state.store.maxCpa)}
           ${settingInput("maxReturnRate", "Макс. процент връщания %", state.store.maxReturnRate)}
+          <label>Регистрация по ДДС
+            <select name="vatEnabled">
+              <option value="true" ${state.store.vatEnabled ? "selected" : ""}>Да</option>
+              <option value="false" ${!state.store.vatEnabled ? "selected" : ""}>Не</option>
+            </select>
+          </label>
+          ${settingInput("vatRate", "ДДС процент %", state.store.vatRate)}
           ${settingInput("monthlyFixedExpenses", "Фиксирани месечни разходи EUR", state.store.monthlyFixedExpenses)}
         </div>
         <button class="btn" style="margin-top:16px">Запази настройките</button>
       </form>
+      <p class="explain" style="margin-top:14px">Ако ДДС е включено, системата приема, че въведените продажни цени и разходи са с включено ДДС. Таблото показва ориентировъчно начислено ДДС, ДДС кредит и ДДС за плащане.</p>
     </section>
   `);
 }
@@ -2236,6 +2289,8 @@ function saveSettings(event) {
     minRoas: num(data.minRoas),
     maxCpa: num(data.maxCpa),
     maxReturnRate: num(data.maxReturnRate),
+    vatEnabled: data.vatEnabled === "true",
+    vatRate: num(data.vatRate),
     monthlyFixedExpenses: num(data.monthlyFixedExpenses)
   };
   saveState();
@@ -2255,7 +2310,7 @@ function createWorkspace() {
 
 function exportCsv() {
   const rows = calculatedDays();
-  const header = ["Дата", "Продукти", "Посещения", "Бройки", "Конверсия", "Оборот", "Реклама", "CPA", "AOV", "ROAS", "Break-even ROAS", "Разходи продукти", "Месечни разходи", "Брутна печалба", "Чиста печалба", "POAS", "Марж", "Връщания", "Статус"];
+  const header = ["Дата", "Продукти", "Посещения", "Бройки", "Конверсия", "Оборот", "Реклама", "CPA", "AOV", "ROAS", "Break-even ROAS", "Разходи продукти", "Месечни разходи", "ДДС начислено", "ДДС кредит", "ДДС за плащане", "Брутна печалба", "Чиста печалба", "POAS", "Марж", "Връщания", "Статус"];
   const body = rows.map((row) => [
     row.date,
     row.productLines.map((line) => `${line.product.name} x${line.quantity}`).join("; "),
@@ -2270,6 +2325,9 @@ function exportCsv() {
     row.breakevenRoas,
     row.cogs,
     row.fixedExpenseShare,
+    row.outputVat,
+    row.deductibleVat,
+    row.vatPayable,
     row.grossProfit,
     row.netProfit,
     row.poas,
