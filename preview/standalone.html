@@ -1,0 +1,2311 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ProfitBoard BG Investor Demo</title>
+    <style>:root {
+  --bg: #f4f6f8;
+  --panel: #ffffff;
+  --panel-soft: #f9fbfc;
+  --ink: #172033;
+  --muted: #667085;
+  --line: #d9e1ea;
+  --line-soft: #edf1f5;
+  --brand: #0f766e;
+  --brand-dark: #115e59;
+  --brand-soft: #e7f4f2;
+  --accent: #315a9f;
+  --accent-soft: #edf3ff;
+  --good: #137a4b;
+  --warn: #a45b00;
+  --bad: #b42318;
+  --soft-good: #e8f6ef;
+  --soft-warn: #fff4df;
+  --soft-bad: #feeceb;
+  --shadow: 0 10px 28px rgba(17, 24, 39, 0.07);
+  --shadow-soft: 0 4px 14px rgba(17, 24, 39, 0.05);
+  --radius: 8px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+}
+
+.sidebar {
+  background: #14213d;
+  color: white;
+  padding: 22px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.brand .muted,
+.sidebar .muted {
+  color: #aebbd0;
+}
+
+.logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #25c09a;
+  color: #08111f;
+  font-weight: 950;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.13);
+}
+
+.nav {
+  display: grid;
+  gap: 6px;
+}
+
+.nav button {
+  width: 100%;
+  text-align: left;
+  color: #d4ddeb;
+  background: transparent;
+  padding: 11px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.nav button.active,
+.nav button:hover {
+  background: rgba(255, 255, 255, 0.11);
+  color: #ffffff;
+}
+
+.nav button.active {
+  box-shadow: inset 3px 0 0 #25c09a;
+}
+
+.sidebar-card {
+  margin-top: auto;
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-card span {
+  color: #c8d2e2;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.main {
+  min-width: 0;
+  padding: 28px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: 30px;
+  line-height: 1.12;
+  margin-bottom: 6px;
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 18px;
+  line-height: 1.25;
+  margin-bottom: 14px;
+}
+
+h3 {
+  font-size: 16px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.cards {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.two {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+}
+
+.panel,
+.card,
+.auth-box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.panel {
+  padding: 20px;
+}
+
+.metric-card {
+  padding: 17px;
+  min-height: 126px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--brand);
+}
+
+.metric-card:nth-child(2)::before {
+  background: var(--accent);
+}
+
+.metric-card:nth-child(3)::before {
+  background: var(--good);
+}
+
+.metric-card:nth-child(4)::before {
+  background: var(--warn);
+}
+
+.metric-card:nth-child(5)::before {
+  background: #51627a;
+}
+
+.showcase-grid {
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  margin-bottom: 16px;
+}
+
+.glow-card {
+  position: relative;
+  min-height: 250px;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 3px;
+  background:
+    radial-gradient(260px 260px at 18% 10%, rgba(37, 192, 154, 0.36), transparent 62%),
+    radial-gradient(240px 240px at 90% 10%, rgba(49, 90, 159, 0.26), transparent 60%),
+    linear-gradient(135deg, rgba(15, 118, 110, 0.48), rgba(255, 255, 255, 0.1));
+  box-shadow: var(--shadow);
+}
+
+.glow-card.warn {
+  background:
+    radial-gradient(260px 260px at 18% 10%, rgba(245, 158, 11, 0.34), transparent 62%),
+    radial-gradient(240px 240px at 90% 10%, rgba(239, 68, 68, 0.24), transparent 60%),
+    linear-gradient(135deg, rgba(164, 91, 0, 0.42), rgba(255, 255, 255, 0.1));
+}
+
+.glow-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 244px;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.86);
+  padding: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.glow-inner h2 {
+  font-size: 25px;
+  margin-bottom: 8px;
+}
+
+.glow-inner p {
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.mini-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mini-stat-row span {
+  display: grid;
+  gap: 4px;
+  border-radius: 8px;
+  background: #f6f9fb;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mini-stat-row strong {
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.health-stat-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  padding: 24px;
+  box-shadow: var(--shadow-soft);
+}
+
+.health-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.health-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-weight: 900;
+}
+
+.health-stat-header h2 {
+  margin-bottom: 0;
+}
+
+.health-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.health-stats div {
+  display: grid;
+  gap: 4px;
+}
+
+.health-stats strong {
+  font-size: 22px;
+}
+
+.health-stats span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.health-bars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 150px;
+  align-items: end;
+  border-radius: 12px;
+  background: #f7f9fb;
+  padding: 16px;
+}
+
+.health-bar-item {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: auto 116px auto;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.health-bar-track {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ebf1;
+}
+
+.health-bar-track div {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 999px;
+  transition: height 0.3s ease;
+}
+
+.health-bar-item strong {
+  color: var(--ink);
+}
+
+.stats-card-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card-ui {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.stat-card-head b {
+  color: var(--brand);
+}
+
+.stat-card-ui > strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.stat-card-ui small {
+  display: block;
+  margin-top: 6px;
+  color: var(--good);
+  font-size: 12px;
+}
+
+.card .label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.card .value {
+  font-weight: 900;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.card .hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.btn {
+  background: var(--brand);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 800;
+  box-shadow: 0 5px 13px rgba(15, 118, 110, 0.18);
+}
+
+.btn:hover {
+  background: var(--brand-dark);
+}
+
+.btn.secondary {
+  background: #eef3f7;
+  color: #172033;
+  box-shadow: none;
+}
+
+.btn.secondary:hover {
+  background: #e3eaf1;
+}
+
+.btn.danger {
+  background: var(--bad);
+  box-shadow: 0 5px 13px rgba(180, 35, 24, 0.16);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.demo-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+  gap: 18px;
+  align-items: stretch;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 26px;
+  box-shadow: var(--shadow);
+}
+
+.demo-hero h1 {
+  font-size: 38px;
+  max-width: 820px;
+}
+
+.demo-hero p {
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 790px;
+  font-size: 15px;
+}
+
+.demo-proof {
+  background: var(--panel-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.demo-proof strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.demo-brief {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--brand);
+}
+
+.demo-brief h2 {
+  margin-bottom: 6px;
+}
+
+.demo-brief p {
+  color: var(--muted);
+  margin-bottom: 0;
+  line-height: 1.55;
+}
+
+.step-list {
+  display: grid;
+  gap: 12px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.step > span {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 950;
+}
+
+.step p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: var(--ink);
+  background: white;
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: right;
+  padding: 12px 11px;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+th {
+  color: #536174;
+  font-size: 12px;
+  background: #f7f9fb;
+  font-weight: 900;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+tbody tr:hover {
+  background: #fbfcfd;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.status.good {
+  color: var(--good);
+  background: var(--soft-good);
+}
+
+.status.warn {
+  color: var(--warn);
+  background: var(--soft-warn);
+}
+
+.status.bad {
+  color: var(--bad);
+  background: var(--soft-bad);
+}
+
+.alerts {
+  display: grid;
+  gap: 10px;
+}
+
+.alert {
+  border-radius: 8px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  line-height: 1.5;
+}
+
+.alert.good {
+  background: var(--soft-good);
+  border-color: #bde8d1;
+}
+
+.alert.bad {
+  background: var(--soft-bad);
+  border-color: #ffc7c2;
+}
+
+.alert.warn {
+  background: var(--soft-warn);
+  border-color: #ffd894;
+}
+
+.sale-line {
+  display: grid;
+  grid-template-columns: 1.5fr 0.5fr;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.health-list {
+  display: grid;
+  gap: 12px;
+}
+
+.health-row {
+  display: grid;
+  grid-template-columns: 48px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.health-track {
+  height: 10px;
+  border-radius: 999px;
+  background: #e5eaf2;
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.health-fill.good {
+  background: var(--good);
+}
+
+.health-fill.warn {
+  background: var(--warn);
+}
+
+.health-fill.bad {
+  background: var(--bad);
+}
+
+.chart {
+  height: 275px;
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  border-left: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 12px 8px 0;
+  background: repeating-linear-gradient(to top, transparent 0, transparent 54px, #edf1f5 55px);
+}
+
+.bar-group {
+  flex: 1;
+  min-width: 28px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 3px;
+}
+
+.bar {
+  width: 8px;
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.bar.revenue {
+  background: var(--accent);
+}
+
+.bar.profit {
+  background: var(--good);
+}
+
+.bar.spend {
+  background: #cf6f00;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.auth-box {
+  width: min(460px, 100%);
+  padding: 24px;
+}
+
+.auth-box .logo {
+  margin-bottom: 16px;
+}
+
+.explain {
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+@media (max-width: 1120px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .two,
+  .form-grid,
+  .demo-hero,
+  .showcase-grid,
+  .stats-card-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+
+  .nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .main {
+    padding: 16px;
+  }
+
+  .topbar,
+  .cards,
+  .sale-line,
+  .demo-brief {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .toolbar {
+    justify-content: stretch;
+  }
+
+  .toolbar .btn {
+    width: 100%;
+  }
+
+  .demo-hero {
+    padding: 20px;
+  }
+
+  .demo-hero h1 {
+    font-size: 28px;
+  }
+
+  .health-bars,
+  .health-stats,
+  .mini-stat-row,
+  .stats-card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .health-bar-item {
+    grid-template-columns: 86px 1fr 46px;
+    grid-template-rows: auto;
+    align-items: center;
+    text-align: left;
+  }
+
+  .health-bar-track {
+    height: 10px;
+    align-items: center;
+  }
+
+  .health-bar-track div {
+    height: 100% !important;
+  }
+}
+</style>
+  </head>
+  <body>
+    <div id="app">
+      <div style="min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f4f6f8;color:#172033;padding:24px">
+        <div style="max-width:460px;background:white;border:1px solid #d9e1ea;border-radius:8px;padding:24px">
+          <h1 style="margin-top:0">ProfitBoard BG</h1>
+          <p>Зареждане на investor demo версията...</p>
+        </div>
+      </div>
+    </div>
+    <script>const storageKey = "profitboard-preview-v2";
+
+const defaultProducts = [
+  {
+    id: "face-mask",
+    name: "Маска за лице",
+    sku: "MASK-001",
+    sellingPrice: 24,
+    productCost: 6,
+    shippingCost: 4.5,
+    packagingCost: 0.8,
+    paymentFee: 0.6,
+    fulfillmentCost: 0.4,
+    otherVariableCost: 0,
+    active: true
+  },
+  {
+    id: "face-cream",
+    name: "Крем за лице",
+    sku: "CREAM-001",
+    sellingPrice: 32,
+    productCost: 8,
+    shippingCost: 4.5,
+    packagingCost: 0.9,
+    paymentFee: 0.8,
+    fulfillmentCost: 0.4,
+    otherVariableCost: 0,
+    active: true
+  },
+  {
+    id: "serum",
+    name: "Серум за лице",
+    sku: "SERUM-001",
+    sellingPrice: 39,
+    productCost: 9.5,
+    shippingCost: 4.5,
+    packagingCost: 0.9,
+    paymentFee: 0.9,
+    fulfillmentCost: 0.4,
+    otherVariableCost: 0,
+    active: true
+  }
+];
+
+const defaults = {
+  store: {
+    name: "Демо магазин",
+    currency: "EUR",
+    targetMargin: 18,
+    minPoas: 1,
+    minRoas: 2,
+    maxCpa: 18,
+    maxReturnRate: 12,
+    monthlyFixedExpenses: 300
+  },
+  products: defaultProducts,
+  days: []
+};
+
+const fileMode = location.protocol === "file:";
+let state = normalizeState(loadState());
+let route = currentRoute();
+
+function cloneDefaults() {
+  return JSON.parse(JSON.stringify(defaults));
+}
+
+function normalizeState(data) {
+  const base = cloneDefaults();
+  const next = {
+    ...base,
+    ...data,
+    store: { ...base.store, ...(data.store || {}) },
+    products: Array.isArray(data.products) && data.products.length ? data.products : base.products,
+    days: Array.isArray(data.days) ? data.days : []
+  };
+  if (!next.store.currency || next.store.currency === "BGN") next.store.currency = "EUR";
+  next.days = next.days.map((day) => {
+    if (Array.isArray(day.items)) return day;
+    const fallbackProduct = next.products[0] || base.products[0];
+    return {
+      date: day.date,
+      visits: Number(day.visits || 0),
+      adSpend: Number(day.adSpendBase || day.adSpend || 0),
+      otherExpenses: Number(day.otherExpenses || 0),
+      refunds: Number(day.refunds || 0),
+      returnedOrders: 0,
+      items: [{ productId: fallbackProduct.id, quantity: Number(day.orders || 0) }]
+    };
+  });
+  return next;
+}
+
+function loadState() {
+  let saved = null;
+  try {
+    saved = window.localStorage ? localStorage.getItem(storageKey) : null;
+  } catch {
+    saved = null;
+  }
+  if (!saved) return cloneDefaults();
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return cloneDefaults();
+  }
+}
+
+function saveState() {
+  try {
+    if (window.localStorage) localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {
+    // File previews can run in browsers that block localStorage.
+  }
+}
+
+function currentRoute() {
+  if (fileMode) return location.hash.replace("#", "") || "register";
+  return location.pathname === "/" ? "dashboard" : location.pathname.replace("/", "");
+}
+
+function navigate(nextRoute) {
+  route = nextRoute;
+  if (fileMode) location.hash = nextRoute;
+  else history.pushState(null, "", `/${nextRoute}`);
+  render();
+}
+
+window.addEventListener("popstate", () => {
+  route = currentRoute();
+  render();
+});
+
+window.addEventListener("hashchange", () => {
+  route = currentRoute();
+  render();
+});
+
+function uid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function num(value) {
+  return Number(value || 0);
+}
+
+function safeDiv(a, b) {
+  return Number(b) ? Number(a || 0) / Number(b) : null;
+}
+
+function daysInMonth(dateString) {
+  const date = new Date(`${dateString || new Date().toISOString().slice(0, 10)}T00:00:00`);
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+}
+
+function money(value) {
+  const currency = state.store.currency || "EUR";
+  const symbol = currency === "EUR" ? "€" : currency === "USD" ? "$" : currency;
+  return `${Number(value || 0).toLocaleString("bg-BG", { maximumFractionDigits: 2 })} ${symbol}`;
+}
+
+function pct(value) {
+  if (value === null || Number.isNaN(value)) return "-";
+  return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function ratio(value) {
+  if (value === null || Number.isNaN(value)) return "-";
+  return Number(value || 0).toFixed(2);
+}
+
+function productById(id) {
+  return state.products.find((product) => product.id === id);
+}
+
+function unitCosts(product) {
+  return (
+    num(product.productCost) +
+    num(product.shippingCost) +
+    num(product.packagingCost) +
+    num(product.paymentFee) +
+    num(product.fulfillmentCost) +
+    num(product.otherVariableCost)
+  );
+}
+
+function calculateDay(day) {
+  const items = Array.isArray(day.items) ? day.items : [];
+  const productLines = items
+    .map((item) => {
+      const product = productById(item.productId);
+      const quantity = num(item.quantity);
+      if (!product || quantity <= 0) return null;
+      const revenue = num(product.sellingPrice) * quantity;
+      const cogs = unitCosts(product) * quantity;
+      return { product, quantity, revenue, cogs, profitBeforeAds: revenue - cogs };
+    })
+    .filter(Boolean);
+
+  const visits = num(day.visits);
+  const orders = productLines.reduce((total, line) => total + line.quantity, 0);
+  const revenue = productLines.reduce((total, line) => total + line.revenue, 0);
+  const cogs = productLines.reduce((total, line) => total + line.cogs, 0);
+  const adSpendBase = num(day.adSpend);
+  const otherExpenses = num(day.otherExpenses);
+  const refunds = num(day.refunds);
+  const returnedOrders = num(day.returnedOrders);
+  const fixedExpenseShare = safeDiv(num(state.store.monthlyFixedExpenses), daysInMonth(day.date)) ?? 0;
+  const grossProfit = revenue - cogs;
+  const netProfit = grossProfit - adSpendBase - otherExpenses - refunds - fixedExpenseShare;
+  const totalCosts = cogs + adSpendBase + otherExpenses + refunds + fixedExpenseShare;
+  const aov = safeDiv(revenue, orders);
+  const averageCogs = safeDiv(cogs, orders) ?? 0;
+  const averageOther = safeDiv(otherExpenses + refunds, orders) ?? 0;
+  const breakevenCpa = (aov ?? 0) - averageCogs - averageOther;
+  const breakevenRoas = breakevenCpa > 0 && aov ? aov / breakevenCpa : null;
+  const margin = safeDiv(netProfit * 100, revenue);
+  const poas = safeDiv(netProfit, adSpendBase);
+  const roas = safeDiv(revenue, adSpendBase);
+  const cpa = safeDiv(adSpendBase, orders);
+  const returnRate = safeDiv(returnedOrders * 100, orders);
+  const conversionRate = safeDiv(orders * 100, visits);
+
+  let status = "Липсват данни";
+  let statusClass = "warn";
+  if (revenue && orders && cogs) {
+    if (netProfit < 0) {
+      status = "На загуба";
+      statusClass = "bad";
+    } else if (margin !== null && margin >= -2 && margin <= 2) {
+      status = "На нула";
+      statusClass = "warn";
+    } else if (netProfit > 0 && (poas === null || poas > state.store.minPoas) && (margin ?? 0) >= state.store.targetMargin) {
+      status = "Силен ден";
+      statusClass = "good";
+    } else if (netProfit > 0) {
+      status = "Печеливш";
+      statusClass = "good";
+    }
+  }
+
+  return {
+    ...day,
+    visits,
+    orders,
+    revenue,
+    cogs,
+    adSpendBase,
+    otherExpenses,
+    refunds,
+    returnedOrders,
+    fixedExpenseShare,
+    grossProfit,
+    netProfit,
+    totalCosts,
+    productLines,
+    conversionRate,
+    costPerVisit: safeDiv(adSpendBase, visits),
+    cpa,
+    aov,
+    roas,
+    poas,
+    margin,
+    roi: safeDiv(netProfit * 100, totalCosts),
+    returnRate,
+    breakevenCpa,
+    breakevenRoas,
+    status,
+    statusClass
+  };
+}
+
+function calculatedDays() {
+  return [...state.days].sort((a, b) => a.date.localeCompare(b.date)).map(calculateDay);
+}
+
+function sum(rows, key) {
+  return rows.reduce((total, row) => total + num(row[key]), 0);
+}
+
+function summary(rows) {
+  const revenue = sum(rows, "revenue");
+  const orders = sum(rows, "orders");
+  const visits = sum(rows, "visits");
+  const adSpendBase = sum(rows, "adSpendBase");
+  const cogs = sum(rows, "cogs");
+  const grossProfit = sum(rows, "grossProfit");
+  const netProfit = sum(rows, "netProfit");
+  const totalCosts = sum(rows, "totalCosts");
+  const returnedOrders = sum(rows, "returnedOrders");
+  const fixedExpenseShare = sum(rows, "fixedExpenseShare");
+  return {
+    revenue,
+    orders,
+    visits,
+    adSpendBase,
+    cogs,
+    grossProfit,
+    netProfit,
+    totalCosts,
+    returnedOrders,
+    fixedExpenseShare,
+    poas: safeDiv(netProfit, adSpendBase),
+    roas: safeDiv(revenue, adSpendBase),
+    margin: safeDiv(netProfit * 100, revenue),
+    cpa: safeDiv(adSpendBase, orders),
+    aov: safeDiv(revenue, orders),
+    roi: safeDiv(netProfit * 100, totalCosts),
+    returnRate: safeDiv(returnedOrders * 100, orders),
+    conversionRate: safeDiv(orders * 100, visits)
+  };
+}
+
+function productProfitability(rows) {
+  const map = new Map();
+  rows.forEach((day) => {
+    day.productLines.forEach((line) => {
+      const current = map.get(line.product.id) || {
+        name: line.product.name,
+        sku: line.product.sku,
+        quantity: 0,
+        revenue: 0,
+        cogs: 0,
+        grossProfit: 0
+      };
+      current.quantity += line.quantity;
+      current.revenue += line.revenue;
+      current.cogs += line.cogs;
+      current.grossProfit += line.profitBeforeAds;
+      map.set(line.product.id, current);
+    });
+  });
+  return [...map.values()].sort((a, b) => b.grossProfit - a.grossProfit);
+}
+
+function businessScore(s) {
+  let score = 50;
+  if (s.netProfit > 0) score += 15;
+  if ((s.margin ?? 0) >= state.store.targetMargin) score += 15;
+  if (s.poas === null || s.poas >= state.store.minPoas) score += 10;
+  if ((s.cpa ?? 0) <= state.store.maxCpa || s.cpa === null) score += 10;
+  if ((s.returnRate ?? 0) > state.store.maxReturnRate) score -= 15;
+  if (s.netProfit < 0) score -= 30;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function sampleData() {
+  const today = new Date();
+  state.products = [...state.products];
+  state.days = Array.from({ length: 14 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (13 - index));
+    const first = 4 + ((index * 2) % 8);
+    const second = 2 + (index % 5);
+    const third = index % 3 === 0 ? 3 : 1;
+    return {
+      date: date.toISOString().slice(0, 10),
+      visits: 310 + index * 34,
+      adSpend: 60 + (index % 6) * 18,
+      otherExpenses: index % 5 === 0 ? 22 : 6,
+      refunds: index % 7 === 0 ? 24 : 0,
+      returnedOrders: index % 7 === 0 ? 1 : 0,
+      items: [
+        { productId: state.products[0]?.id || "face-mask", quantity: first },
+        { productId: state.products[1]?.id || "face-cream", quantity: second },
+        { productId: state.products[2]?.id || "serum", quantity: third }
+      ].filter((item) => productById(item.productId))
+    };
+  });
+  saveState();
+  render();
+}
+
+function clearData() {
+  if (!confirm("Да изтрия ли всички дневни preview данни? Продуктите ще останат.")) return;
+  state.days = [];
+  saveState();
+  render();
+}
+
+function resetProducts() {
+  if (!confirm("Да върна ли примерните продукти? Това ще замени текущия продуктов списък.")) return;
+  state.products = JSON.parse(JSON.stringify(defaultProducts));
+  saveState();
+  render();
+}
+
+function layout(content) {
+  const nav = [
+    ["demo", "Investor demo"],
+    ["dashboard", "Табло"],
+    ["products", "Продукти"],
+    ["daily-input", "Дневно въвеждане"],
+    ["daily-tracking", "Дневен отчет"],
+    ["reports", "Отчети"],
+    ["imports", "Импорт"],
+    ["alerts", "Предупреждения"],
+    ["calculators", "Калкулатори"],
+    ["settings", "Настройки"]
+  ];
+  return `
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><div class="logo">PB</div><div>ProfitBoard BG<br><span class="muted">Preview режим</span></div></div>
+        <div class="nav">
+          ${nav.map(([key, label]) => `<button class="${route === key ? "active" : ""}" onclick="navigate('${key}')">${label}</button>`).join("")}
+        </div>
+        <div class="sidebar-card">
+          <strong>Investor demo</strong>
+          <span>Локална демо версия с ръчно въвеждане, отчети и CSV импорт.</span>
+        </div>
+      </aside>
+      <main class="main">${content}</main>
+    </div>
+  `;
+}
+
+function topbar(title, subtitle = "") {
+  return `
+    <div class="topbar">
+      <div>
+        <h1>${title}</h1>
+        ${subtitle ? `<p class="muted">${subtitle}</p>` : ""}
+      </div>
+      <div class="toolbar">
+        <button class="btn secondary" onclick="sampleData()">Зареди демо данни</button>
+        <button class="btn" onclick="navigate('daily-input')">Добави ден</button>
+      </div>
+    </div>
+  `;
+}
+
+function card(label, value, hint = "") {
+  return `<div class="card metric-card"><div class="label">${label}</div><div class="value">${value}</div>${hint ? `<div class="hint">${hint}</div>` : ""}</div>`;
+}
+
+function investorHome() {
+  const rows = calculatedDays();
+  const hasData = rows.length > 0;
+  return layout(`
+    <section class="demo-hero">
+      <div>
+        <span class="badge">Investor demo MVP</span>
+        <h1>ProfitBoard BG показва реалната печалба, не само оборота.</h1>
+        <p>Онлайн търговецът въвежда продуктите с реалните им разходи, дневните продажби и рекламния разход. Софтуерът автоматично показва чиста печалба, POAS, марж, CPA, предупреждения и отчети.</p>
+        <div class="toolbar">
+          <button class="btn" onclick="startInvestorDemo()">Зареди демо и отвори табло</button>
+          <button class="btn secondary" onclick="navigate('products')">Въведи мои продукти</button>
+        </div>
+      </div>
+      <div class="demo-proof">
+        <div class="label">Основен въпрос</div>
+        <strong>Колко пари реално ми остават днес?</strong>
+        <p>Фокусът е върху чиста печалба, POAS и марж. ROAS остава вторичен показател, защото висок ROAS може да крие ниска или отрицателна печалба.</p>
+      </div>
+    </section>
+    <section class="grid cards" style="margin-top:14px">
+      ${card("1. Продукти", "Фиксирани разходи", "Себестойност, доставка, опаковка, такси")}
+      ${card("2. Дневни данни", "Продажби + реклама", "Посещения, бройки, реклама, refund")}
+      ${card("3. Dashboard", "Profit-first", "Net Profit, POAS, Margin, Health")}
+      ${card("4. Отчети", "Ден/седмица/месец", "Продуктова печалба и CSV export")}
+      ${card("5. Следващо", "Meta email/API", "Подготвено за интеграции")}
+    </section>
+    <section class="grid two" style="margin-top:14px">
+      <div class="panel">
+        <h2>Демо сценарий за инвеститор</h2>
+        ${demoSteps()}
+      </div>
+      <div class="panel">
+        <h2>Статус на preview MVP</h2>
+        <div class="alerts">
+          <div class="alert good"><strong>Работи за показване:</strong><br>ръчно въвеждане, продукти, dashboard, отчети, import/export и alerts.</div>
+          <div class="alert warn"><strong>Остава за production:</strong><br>login, база данни, cloud hosting, multi-tenant защита и реална Meta връзка.</div>
+          ${hasData ? `<div class="alert good"><strong>Има заредени данни:</strong><br>Можеш директно да отвориш таблото и отчетите.</div>` : `<div class="alert warn"><strong>Няма данни:</strong><br>Зареди демо данни или въведи свои продукти и ден.</div>`}
+        </div>
+      </div>
+    </section>
+  `);
+}
+
+function demoSteps() {
+  const steps = [
+    ["Продукти", "Покажи как се въвежда продукт като Маска за лице с цена и реални разходи."],
+    ["Дневно въвеждане", "Покажи, че всеки ден се въвеждат само бройки, посещения, реклама и refund."],
+    ["Табло", "Покажи, че системата казва дали бизнесът е печеливш, а не само какъв е оборотът."],
+    ["Отчети", "Покажи седмичен/месечен отчет и печалба по продукти."],
+    ["Импорт", "Покажи как CSV данни могат да се вкарат без API интеграция."]
+  ];
+  return `<div class="step-list">${steps.map(([title, body], index) => `<div class="step"><span>${index + 1}</span><div><strong>${title}</strong><p>${body}</p></div></div>`).join("")}</div>`;
+}
+
+function startInvestorDemo() {
+  sampleData();
+  navigate("dashboard");
+}
+
+function dashboard() {
+  const rows = calculatedDays();
+  const s = summary(rows);
+  const score = businessScore(s);
+  const max = Math.max(1, ...rows.flatMap((row) => [row.revenue, row.adSpendBase, Math.max(0, row.netProfit)]));
+  return layout(`
+    ${topbar("Табло", "Въвеждаш продуктите с фиксирани разходи веднъж. После всеки ден записваш само продажби, посещения, реклама и извънредни разходи.")}
+    ${businessBrief(s, score)}
+    ${dashboardShowcase(s, score)}
+    <section class="grid cards">
+      ${card("Чиста печалба", money(s.netProfit), "Реална печалба след себестойност, доставка, реклама и връщания")}
+      ${card("POAS", ratio(s.poas), "Печалба за всяко 1 евро рекламен разход")}
+      ${card("Марж", pct(s.margin), "Чиста печалба / оборот")}
+      ${card("Здраве на бизнеса", `${score}/100`, businessHealthLabel(score))}
+      ${card("ROAS", ratio(s.roas), "Оборот / рекламен разход")}
+    </section>
+    <section class="grid two" style="margin-top:14px">
+      <div class="panel">
+        <h2>Графика: оборот, реклама и печалба</h2>
+        ${moneyGraph(rows, max)}
+        <p class="muted" style="margin-top:10px">Синьо: оборот, оранжево: реклама, зелено: чиста печалба.</p>
+      </div>
+      <div class="panel">
+        <h2>Състояние на бизнеса</h2>
+        ${healthGraph(rows)}
+      </div>
+    </section>
+    <section class="grid two" style="margin-top:14px">
+      <div class="panel">
+        <h2>Печалба по продукти</h2>
+        ${productTable(productProfitability(rows))}
+      </div>
+      <div class="panel">
+        <h2>Общо за периода</h2>
+        <div class="grid">
+          ${card("Оборот", money(s.revenue))}
+          ${card("Рекламен разход", money(s.adSpendBase))}
+          ${card("Разпределени месечни разходи", money(s.fixedExpenseShare))}
+          ${card("Поръчки / бройки", s.orders.toLocaleString("bg-BG"))}
+          ${card("CPA", s.cpa === null ? "-" : money(s.cpa))}
+        </div>
+      </div>
+    </section>
+    <section class="panel" style="margin-top:14px">
+      <h2>Последни дневни редове</h2>
+      ${dailyTable(rows.slice(-8))}
+    </section>
+  `);
+}
+
+function dashboardShowcase(s, score) {
+  const poasScore = Math.max(0, Math.min(100, Math.round((Number(s.poas || 0) / 2) * 100)));
+  const marginScore = Math.max(0, Math.min(100, Math.round((Number(s.margin || 0) / 30) * 100)));
+  const roasScore = Math.max(0, Math.min(100, Math.round((Number(s.roas || 0) / 4) * 100)));
+  const cpaScore = s.cpa && s.cpa > 0 ? Math.max(0, Math.min(100, Math.round((Number(s.aov || 0) / s.cpa) * 25))) : 0;
+
+  return `
+    <section class="grid showcase-grid">
+      <div class="glow-card ${s.netProfit >= 0 ? "good" : "warn"}">
+        <div class="glow-inner">
+          <span class="badge">Profit-first insight</span>
+          <h2>${s.netProfit >= 0 ? "Магазинът е печеливш за периода." : "Магазинът губи пари за периода."}</h2>
+          <p>Чиста печалба ${money(s.netProfit)}, марж ${pct(s.margin)} и POAS ${ratio(s.poas)}. Това е същият визуален блок като новия React GlowCard, адаптиран за статичния investor demo.</p>
+          <div class="mini-stat-row">
+            <span>Net Profit <strong>${money(s.netProfit)}</strong></span>
+            <span>POAS <strong>${ratio(s.poas)}</strong></span>
+            <span>Health <strong>${score}/100</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="health-stat-card">
+        <div class="health-stat-header">
+          <span class="health-icon">↗</span>
+          <h2>Business Health Overview</h2>
+        </div>
+        <div class="health-stats">
+          <div><strong>${pct(s.margin)}</strong><span>Марж</span></div>
+          <div><strong>${ratio(s.poas)}</strong><span>POAS</span></div>
+          <div><strong>${s.cpa === null ? "-" : money(s.cpa)}</strong><span>CPA</span></div>
+        </div>
+        <div class="health-bars">
+          ${healthBar("Margin", marginScore, "#0f766e")}
+          ${healthBar("POAS", poasScore, "#315a9f")}
+          ${healthBar("ROAS", roasScore, "#f59e0b")}
+          ${healthBar("CPA Safety", cpaScore, "#ef4444")}
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-card-row">
+      ${miniMetric("Net Profit", money(s.netProfit), "current selected period")}
+      ${miniMetric("POAS", ratio(s.poas), "profit-first ad efficiency")}
+      ${miniMetric("Delivered Orders", s.orders.toLocaleString("bg-BG"), "confirmed revenue only")}
+    </section>
+  `;
+}
+
+function healthBar(label, value, color) {
+  return `
+    <div class="health-bar-item" title="${label}: ${value}%">
+      <span>${label}</span>
+      <div class="health-bar-track"><div style="height:${value}%;background:${color}"></div></div>
+      <strong>${value}%</strong>
+    </div>
+  `;
+}
+
+function miniMetric(label, value, note) {
+  return `
+    <div class="stat-card-ui">
+      <div class="stat-card-head"><span>${label}</span><b>↗</b></div>
+      <strong>${value}</strong>
+      <small>${note}</small>
+    </div>
+  `;
+}
+
+function businessBrief(s, score) {
+  if (!s.revenue) {
+    return `
+      <section class="panel demo-brief">
+        <div>
+          <span class="badge">Няма данни</span>
+          <h2>Започни с демо или въведи първия продукт.</h2>
+          <p>За investor demo най-бързо е да заредиш примерни данни, после да покажеш как се добавя реален продукт и дневни продажби.</p>
+        </div>
+        <div class="toolbar">
+          <button class="btn" onclick="startInvestorDemo()">Зареди демо</button>
+          <button class="btn secondary" onclick="navigate('products')">Добави продукт</button>
+        </div>
+      </section>
+    `;
+  }
+  const verdict = s.netProfit < 0
+    ? "Бизнесът е на загуба за избрания период."
+    : score >= 80
+      ? "Бизнесът изглежда здрав и печеливш."
+      : "Бизнесът е печеливш, но има показатели за следене.";
+  return `
+    <section class="panel demo-brief">
+      <div>
+        <span class="badge">Автоматична интерпретация</span>
+        <h2>${verdict}</h2>
+        <p>Чиста печалба ${money(s.netProfit)}, марж ${pct(s.margin)}, POAS ${ratio(s.poas)}. Системата приоритизира печалбата пред ROAS.</p>
+      </div>
+      <button class="btn secondary" onclick="navigate('alerts')">Виж предупреждения</button>
+    </section>
+  `;
+}
+
+function businessHealthLabel(score) {
+  if (score >= 80) return "Стабилен и печеливш";
+  if (score >= 60) return "Добър, но има какво да се следи";
+  if (score >= 40) return "Рисков, провери маржа и рекламата";
+  return "Проблемен, нужни са корекции";
+}
+
+function moneyGraph(rows, max) {
+  if (!rows.length) return `<p class="muted">Няма данни за графика. Добави ден или зареди демо данни.</p>`;
+  return `
+    <div class="chart">
+      ${rows.slice(-14).map((row) => `
+        <div class="bar-group" title="${row.date}">
+          <div class="bar revenue" style="height:${(row.revenue / max) * 230}px"></div>
+          <div class="bar spend" style="height:${(row.adSpendBase / max) * 230}px"></div>
+          <div class="bar profit" style="height:${(Math.max(0, row.netProfit) / max) * 230}px"></div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function healthGraph(rows) {
+  if (!rows.length) return `<p class="muted">Няма данни за състоянието. Добави дневни продажби.</p>`;
+  return `
+    <div class="health-list">
+      ${rows.slice(-10).map((row) => {
+        const score = businessScore(summary([row]));
+        const cls = score >= 70 ? "good" : score >= 45 ? "warn" : "bad";
+        return `
+          <div class="health-row">
+            <span>${row.date.slice(5)}</span>
+            <div class="health-track"><div class="health-fill ${cls}" style="width:${score}%"></div></div>
+            <strong>${score}</strong>
+          </div>
+        `;
+      }).join("")}
+    </div>
+    <p class="explain">Оценката комбинира чиста печалба, марж, POAS, CPA и процент връщания.</p>
+  `;
+}
+
+function productsPage() {
+  return layout(`
+    ${topbar("Продукти", "Тук се въвеждат продажната цена и фиксираните разходи за всеки продукт. Те после се използват автоматично в дневните отчети.")}
+    <section class="panel">
+      <h2>Добави продукт</h2>
+      <form onsubmit="saveProduct(event)">
+        <div class="form-grid">
+          ${input("name", "Име", "text", "Маска за лице")}
+          ${input("sku", "SKU", "text", "")}
+          ${input("sellingPrice", "Продажна цена EUR")}
+          ${input("productCost", "Себестойност")}
+          ${input("shippingCost", "Доставка")}
+          ${input("packagingCost", "Опаковка")}
+          ${input("paymentFee", "Такса плащане")}
+          ${input("fulfillmentCost", "Фулфилмънт")}
+          ${input("otherVariableCost", "Друг променлив разход")}
+        </div>
+        <div class="toolbar" style="margin-top:16px">
+          <button class="btn" type="submit">Запази продукт</button>
+          <button class="btn secondary" type="button" onclick="resetProducts()">Върни примерни продукти</button>
+        </div>
+      </form>
+    </section>
+    <section class="panel" style="margin-top:14px">
+      <h2>Продуктов списък</h2>
+      ${productsTable()}
+    </section>
+  `);
+}
+
+function productsTable() {
+  if (!state.products.length) return `<p class="muted">Няма продукти. Добави поне един продукт, за да въвеждаш дневни продажби.</p>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Продукт</th><th>SKU</th><th>Цена</th><th>Фиксирани разходи/бр.</th><th>Печалба преди реклама/бр.</th><th>Действие</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.products.map((product) => {
+            const costs = unitCosts(product);
+            return `
+              <tr>
+                <td>${product.name}</td>
+                <td>${product.sku || "-"}</td>
+                <td>${money(product.sellingPrice)}</td>
+                <td>${money(costs)}</td>
+                <td>${money(num(product.sellingPrice) - costs)}</td>
+                <td><button class="btn secondary" onclick="deleteProduct('${product.id}')">Изтрий</button></td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function saveProduct(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target).entries());
+  state.products.push({
+    id: uid(),
+    name: data.name || "Нов продукт",
+    sku: data.sku || "",
+    sellingPrice: num(data.sellingPrice),
+    productCost: num(data.productCost),
+    shippingCost: num(data.shippingCost),
+    packagingCost: num(data.packagingCost),
+    paymentFee: num(data.paymentFee),
+    fulfillmentCost: num(data.fulfillmentCost),
+    otherVariableCost: num(data.otherVariableCost),
+    active: true
+  });
+  saveState();
+  event.target.reset();
+  render();
+}
+
+function deleteProduct(id) {
+  if (!confirm("Да изтрия ли този продукт?")) return;
+  state.products = state.products.filter((product) => product.id !== id);
+  state.days = state.days.map((day) => ({ ...day, items: (day.items || []).filter((item) => item.productId !== id) }));
+  saveState();
+  render();
+}
+
+function dailyInput() {
+  return layout(`
+    ${topbar("Ръчно дневно въвеждане", "Разходите за продуктите са фиксирани в продуктовия модул. Тук избираш продукти и бройки за деня.")}
+    <section class="panel">
+      <form id="day-form" onsubmit="saveDay(event)">
+        <div class="form-grid">
+          ${input("date", "Дата", "date", new Date().toISOString().slice(0, 10))}
+          ${input("visits", "Посещения")}
+          ${input("adSpend", "Рекламен разход EUR")}
+          ${input("otherExpenses", "Други дневни разходи")}
+          ${input("refunds", "Върнати суми / refund")}
+          ${input("returnedOrders", "Върнати поръчки")}
+        </div>
+        <h2 style="margin-top:18px">Продажби по продукти</h2>
+        <div id="sales-lines" class="grid">
+          ${saleLine(0)}
+        </div>
+        <div class="toolbar" style="margin-top:16px">
+          <button class="btn secondary" type="button" onclick="addSaleLine()">Добави продукт в деня</button>
+          <button class="btn" type="submit">Запази деня</button>
+          <button class="btn secondary" type="button" onclick="navigate('products')">Управлявай продукти</button>
+        </div>
+      </form>
+    </section>
+  `);
+}
+
+function input(name, label, type = "number", value = "") {
+  return `<label>${label}<input name="${name}" type="${type}" step="0.01" value="${value}" ${name === "date" ? "required" : ""}></label>`;
+}
+
+function saleLine(index) {
+  const options = state.products.map((product) => `<option value="${product.id}">${product.name} (${money(product.sellingPrice)})</option>`).join("");
+  return `
+    <div class="sale-line">
+      <label>Продукт<select name="productId-${index}">${options}</select></label>
+      <label>Бройки / поръчки<input name="quantity-${index}" type="number" step="1" min="0" value="${index === 0 ? 1 : 0}"></label>
+    </div>
+  `;
+}
+
+function addSaleLine() {
+  const box = document.getElementById("sales-lines");
+  const index = box.querySelectorAll(".sale-line").length;
+  box.insertAdjacentHTML("beforeend", saleLine(index));
+}
+
+function saveDay(event) {
+  event.preventDefault();
+  const form = event.target;
+  const data = Object.fromEntries(new FormData(form).entries());
+  const items = [];
+  form.querySelectorAll(".sale-line").forEach((line, index) => {
+    const productId = data[`productId-${index}`];
+    const quantity = num(data[`quantity-${index}`]);
+    if (productId && quantity > 0) items.push({ productId, quantity });
+  });
+  const day = {
+    date: data.date,
+    visits: num(data.visits),
+    adSpend: num(data.adSpend),
+    otherExpenses: num(data.otherExpenses),
+    refunds: num(data.refunds),
+    returnedOrders: num(data.returnedOrders),
+    items
+  };
+  const existing = state.days.findIndex((entry) => entry.date === day.date);
+  if (existing >= 0) state.days[existing] = day;
+  else state.days.push(day);
+  saveState();
+  navigate("daily-tracking");
+}
+
+function dailyTracking() {
+  const rows = calculatedDays();
+  return layout(`
+    ${topbar("Дневен отчет като таблица", "Всеки ред е един ден. Оборотът и себестойността се изчисляват от продадените продукти.")}
+    <section class="panel">
+      <div class="toolbar" style="margin-bottom:12px">
+        <button class="btn secondary" onclick="exportCsv()">Експорт CSV</button>
+        <button class="btn danger" onclick="clearData()">Изчисти дневните данни</button>
+      </div>
+      ${dailyTable(rows)}
+    </section>
+  `);
+}
+
+function dailyTable(rows) {
+  if (!rows.length) return `<p class="muted">Все още няма данни. Добави ден ръчно или зареди демо данни.</p>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th><th>Продукти</th><th>Посещения</th><th>Бройки</th><th>Конв.</th><th>Оборот</th><th>Реклама</th><th>CPA</th><th>AOV</th><th>ROAS</th><th>BE ROAS</th><th>Разходи продукти</th><th>Месечни разходи</th><th>Брутна печалба</th><th>Чиста печалба</th><th>POAS</th><th>Марж</th><th>Връщания</th><th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              <td>${row.date}</td>
+              <td>${row.productLines.map((line) => `${line.product.name} x${line.quantity}`).join(", ") || "-"}</td>
+              <td>${row.visits}</td>
+              <td>${row.orders}</td>
+              <td>${pct(row.conversionRate)}</td>
+              <td>${money(row.revenue)}</td>
+              <td>${money(row.adSpendBase)}</td>
+              <td>${row.cpa === null ? "-" : money(row.cpa)}</td>
+              <td>${row.aov === null ? "-" : money(row.aov)}</td>
+              <td>${ratio(row.roas)}</td>
+              <td>${ratio(row.breakevenRoas)}</td>
+              <td>${money(row.cogs)}</td>
+              <td>${money(row.fixedExpenseShare)}</td>
+              <td>${money(row.grossProfit)}</td>
+              <td>${money(row.netProfit)}</td>
+              <td>${ratio(row.poas)}</td>
+              <td>${pct(row.margin)}</td>
+              <td>${pct(row.returnRate)}</td>
+              <td><span class="status ${row.statusClass}">${row.status}</span></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function productTable(rows) {
+  if (!rows.length) return `<p class="muted">Няма продуктови продажби за периода.</p>`;
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Продукт</th><th>Бройки</th><th>Оборот</th><th>Фикс. разходи</th><th>Печалба преди реклама</th></tr></thead>
+        <tbody>
+          ${rows.map((row) => `
+            <tr>
+              <td>${row.name}</td>
+              <td>${row.quantity}</td>
+              <td>${money(row.revenue)}</td>
+              <td>${money(row.cogs)}</td>
+              <td>${money(row.grossProfit)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function reportsPage() {
+  const rows = calculatedDays();
+  const s = summary(rows);
+  return layout(`
+    ${topbar("Отчети", "Дневен, седмичен, месечен и продуктов поглед върху реалната печалба.")}
+    <section class="grid cards">
+      ${card("Оборот", money(s.revenue))}
+      ${card("Чиста печалба", money(s.netProfit))}
+      ${card("Марж", pct(s.margin))}
+      ${card("POAS", ratio(s.poas))}
+      ${card("Връщания", pct(s.returnRate))}
+    </section>
+    <section class="grid two" style="margin-top:14px">
+      <div class="panel">
+        <h2>Седмичен отчет</h2>
+        ${periodReport(rows, "week")}
+      </div>
+      <div class="panel">
+        <h2>Месечен отчет</h2>
+        ${periodReport(rows, "month")}
+      </div>
+    </section>
+    <section class="grid two" style="margin-top:14px">
+      <div class="panel">
+        <h2>Продуктова печалба</h2>
+        ${productTable(productProfitability(rows))}
+      </div>
+      <div class="panel">
+        <h2>Дневен отчет</h2>
+        ${periodReport(rows, "day")}
+      </div>
+    </section>
+  `);
+}
+
+function periodKey(row, type) {
+  if (type === "day") return row.date;
+  const date = new Date(`${row.date}T00:00:00`);
+  if (type === "month") return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  const firstDay = new Date(date.getFullYear(), 0, 1);
+  const week = Math.ceil((((date - firstDay) / 86400000) + firstDay.getDay() + 1) / 7);
+  return `${date.getFullYear()} W${String(week).padStart(2, "0")}`;
+}
+
+function periodReport(rows, type) {
+  if (!rows.length) return `<p class="muted">Няма данни за отчет.</p>`;
+  const groups = new Map();
+  rows.forEach((row) => {
+    const key = periodKey(row, type);
+    const list = groups.get(key) || [];
+    list.push(row);
+    groups.set(key, list);
+  });
+  const entries = [...groups.entries()].map(([key, list]) => ({ key, ...summary(list) })).sort((a, b) => b.key.localeCompare(a.key));
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Период</th><th>Оборот</th><th>Реклама</th><th>Разходи</th><th>Чиста печалба</th><th>Марж</th><th>POAS</th></tr></thead>
+        <tbody>
+          ${entries.map((entry) => `
+            <tr>
+              <td>${entry.key}</td>
+              <td>${money(entry.revenue)}</td>
+              <td>${money(entry.adSpendBase)}</td>
+              <td>${money(entry.totalCosts)}</td>
+              <td>${money(entry.netProfit)}</td>
+              <td>${pct(entry.margin)}</td>
+              <td>${ratio(entry.poas)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function importsPage() {
+  return layout(`
+    ${topbar("Импорт", "Постави CSV данни за продукти или дневни продажби. Поддържа български и английски имена на колони.")}
+    <section class="panel">
+      <div class="form-grid" style="grid-template-columns:240px 1fr">
+        <label>Тип импорт
+          <select id="import-type" onchange="updateImportExample()">
+            <option value="products">Продукти</option>
+            <option value="daily">Дневни продажби</option>
+          </select>
+        </label>
+        <label>CSV данни
+          <textarea id="import-text" rows="10" placeholder="Име,SKU,Цена,Себестойност,Доставка,Опаковка,Такса"></textarea>
+        </label>
+      </div>
+      <div class="toolbar" style="margin-top:16px">
+        <button class="btn" onclick="importCsv()">Импортирай</button>
+        <button class="btn secondary" onclick="updateImportExample()">Покажи пример</button>
+      </div>
+      <p class="explain">За дневни продажби продуктът се разпознава по име или SKU. Ако го няма, системата го създава с нулеви разходи, за да можеш после да ги попълниш в секция Продукти.</p>
+    </section>
+  `);
+}
+
+function updateImportExample() {
+  const type = document.getElementById("import-type").value;
+  const text = type === "products"
+    ? "Име,SKU,Цена,Себестойност,Доставка,Опаковка,Такса,Фулфилмънт,Друг разход\\nМаска за лице,MASK-002,24,6,4.5,0.8,0.6,0.4,0"
+    : "Дата,Продукт,Бройки,Посещения,Реклама,Други разходи,Refund,Върнати поръчки\\n2026-05-23,Маска за лице,12,480,95,8,0,0\\n2026-05-23,Крем за лице,5,480,0,0,0,0";
+  document.getElementById("import-text").value = text;
+}
+
+function splitCsvLine(line) {
+  const delimiter = line.includes(";") && !line.includes(",") ? ";" : ",";
+  const values = [];
+  let current = "";
+  let quoted = false;
+  for (const char of line) {
+    if (char === '"') quoted = !quoted;
+    else if (char === delimiter && !quoted) {
+      values.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  values.push(current.trim());
+  return values.map((value) => value.replace(/^"|"$/g, ""));
+}
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitCsvLine(lines[0]).map(normalizeHeader);
+  return lines.slice(1).map((line) => {
+    const values = splitCsvLine(line);
+    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+  });
+}
+
+function normalizeHeader(value) {
+  const key = value.toLowerCase().trim();
+  const map = {
+    "име": "name",
+    "name": "name",
+    "продукт": "product",
+    "product": "product",
+    "sku": "sku",
+    "цена": "sellingPrice",
+    "price": "sellingPrice",
+    "себестойност": "productCost",
+    "cogs": "productCost",
+    "доставка": "shippingCost",
+    "shipping": "shippingCost",
+    "опаковка": "packagingCost",
+    "packaging": "packagingCost",
+    "такса": "paymentFee",
+    "payment fee": "paymentFee",
+    "фулфилмънт": "fulfillmentCost",
+    "fulfillment": "fulfillmentCost",
+    "друг разход": "otherVariableCost",
+    "other cost": "otherVariableCost",
+    "дата": "date",
+    "date": "date",
+    "бройки": "quantity",
+    "quantity": "quantity",
+    "посещения": "visits",
+    "visits": "visits",
+    "реклама": "adSpend",
+    "ad spend": "adSpend",
+    "други разходи": "otherExpenses",
+    "other expenses": "otherExpenses",
+    "refund": "refunds",
+    "върнати поръчки": "returnedOrders"
+  };
+  return map[key] || key;
+}
+
+function importCsv() {
+  const type = document.getElementById("import-type").value;
+  const rows = parseCsv(document.getElementById("import-text").value);
+  if (!rows.length) {
+    alert("Няма валидни CSV редове.");
+    return;
+  }
+  if (type === "products") importProducts(rows);
+  else importDailyRows(rows);
+  saveState();
+  alert(`Импортът е готов: ${rows.length} реда.`);
+  render();
+}
+
+function importProducts(rows) {
+  rows.forEach((row) => {
+    const existing = state.products.find((product) => product.sku && row.sku && product.sku === row.sku);
+    const product = {
+      id: existing?.id || uid(),
+      name: row.name || row.product || "Нов продукт",
+      sku: row.sku || "",
+      sellingPrice: num(row.sellingPrice),
+      productCost: num(row.productCost),
+      shippingCost: num(row.shippingCost),
+      packagingCost: num(row.packagingCost),
+      paymentFee: num(row.paymentFee),
+      fulfillmentCost: num(row.fulfillmentCost),
+      otherVariableCost: num(row.otherVariableCost),
+      active: true
+    };
+    if (existing) Object.assign(existing, product);
+    else state.products.push(product);
+  });
+}
+
+function findOrCreateProduct(row) {
+  const label = row.product || row.name || row.sku || "Импортиран продукт";
+  let product = state.products.find((item) => item.name === label || (row.sku && item.sku === row.sku));
+  if (!product) {
+    product = {
+      id: uid(),
+      name: label,
+      sku: row.sku || "",
+      sellingPrice: num(row.sellingPrice),
+      productCost: 0,
+      shippingCost: 0,
+      packagingCost: 0,
+      paymentFee: 0,
+      fulfillmentCost: 0,
+      otherVariableCost: 0,
+      active: true
+    };
+    state.products.push(product);
+  }
+  return product;
+}
+
+function importDailyRows(rows) {
+  rows.forEach((row) => {
+    const product = findOrCreateProduct(row);
+    const date = row.date || new Date().toISOString().slice(0, 10);
+    let day = state.days.find((entry) => entry.date === date);
+    if (!day) {
+      day = { date, visits: 0, adSpend: 0, otherExpenses: 0, refunds: 0, returnedOrders: 0, items: [] };
+      state.days.push(day);
+    }
+    day.visits = Math.max(num(day.visits), num(row.visits));
+    day.adSpend += num(row.adSpend);
+    day.otherExpenses += num(row.otherExpenses);
+    day.refunds += num(row.refunds);
+    day.returnedOrders += num(row.returnedOrders);
+    const existingLine = day.items.find((item) => item.productId === product.id);
+    if (existingLine) existingLine.quantity += num(row.quantity);
+    else day.items.push({ productId: product.id, quantity: num(row.quantity) });
+  });
+}
+
+function alertsPage() {
+  const alerts = buildAlerts(calculatedDays());
+  return layout(`
+    ${topbar("Предупреждения за печалба", "Автоматични сигнали по марж, POAS, ROAS, CPA, връщания и липсващи продуктови данни.")}
+    <section class="panel alerts">
+      ${alerts.length ? alerts.map((alert) => `<div class="alert ${alert.type}"><strong>${alert.title}</strong><br><span>${alert.body}</span></div>`).join("") : `<p class="muted">Няма предупреждения. Текущите preview данни изглеждат здрави.</p>`}
+    </section>
+  `);
+}
+
+function buildAlerts(rows) {
+  const s = summary(rows);
+  const alerts = [];
+  if (!state.products.length) alerts.push({ type: "bad", title: "Няма продукти", body: "Добави продукти с цена и фиксирани разходи, за да работи печалбата." });
+  if (!rows.length) alerts.push({ type: "warn", title: "Липсват дневни данни", body: "Добави дневни продажби, за да видиш реалната печалба." });
+  if (rows.some((row) => !row.orders || !row.revenue)) alerts.push({ type: "warn", title: "Има дни без продажби", body: "Провери дали за всеки ден са избрани продукти и бройки." });
+  if (state.products.some((product) => unitCosts(product) <= 0)) alerts.push({ type: "warn", title: "Продукт с непълни разходи", body: "Има продукт без себестойност, доставка, опаковка или такси. Това може да надцени печалбата." });
+  if (s.netProfit < 0) alerts.push({ type: "bad", title: "Отрицателна чиста печалба", body: "Бизнесът е на загуба след фиксирани продуктови разходи, реклама и връщания." });
+  if ((s.poas ?? 0) < state.store.minPoas && s.adSpendBase > 0) alerts.push({ type: "bad", title: "POAS е под целта", body: "Печалбата спрямо рекламния разход е под приемливото ниво." });
+  if ((s.roas ?? 0) < state.store.minRoas && s.adSpendBase > 0) alerts.push({ type: "warn", title: "ROAS е под целта", body: "Оборотът спрямо рекламата е слаб. Провери маржа и POAS преди скалиране." });
+  if ((s.cpa ?? 0) > state.store.maxCpa) alerts.push({ type: "warn", title: "CPA е твърде висок", body: "Цената за придобиване е над зададения максимум." });
+  if ((s.returnRate ?? 0) > state.store.maxReturnRate) alerts.push({ type: "warn", title: "Много връщания", body: "Процентът върнати поръчки е над зададения праг." });
+  if ((s.margin ?? 0) < state.store.targetMargin && s.revenue > 0) alerts.push({ type: "warn", title: "Маржът е под целта", body: "Чистият марж е под целта на магазина." });
+  return alerts;
+}
+
+function calculators() {
+  return layout(`
+    ${topbar("Калкулатори", "Самостоятелни калкулатори за ROAS, POAS, break-even ROAS и реална печалба.")}
+    <section class="grid two">
+      ${calculatorPanel("ROAS калкулатор", "Оборот", "Рекламен разход", "calcRoas", "ROAS показва оборот за 1 евро рекламен разход. Сам по себе си не доказва печалба.")}
+      ${calculatorPanel("POAS калкулатор", "Чиста печалба", "Рекламен разход", "calcPoas", "POAS показва печалба за 1 евро рекламен разход.")}
+      ${profitCalculator()}
+      ${breakevenCalculator()}
+    </section>
+  `);
+}
+
+function calculatorPanel(title, first, second, fn, text) {
+  return `
+    <div class="panel">
+      <h2>${title}</h2>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <label>${first}<input id="${fn}-a" type="number" step="0.01" oninput="${fn}()"></label>
+        <label>${second}<input id="${fn}-b" type="number" step="0.01" oninput="${fn}()"></label>
+      </div>
+      <h3 id="${fn}-out" style="margin-top:14px">-</h3>
+      <p class="explain">${text}</p>
+    </div>
+  `;
+}
+
+function profitCalculator() {
+  return `
+    <div class="panel">
+      <h2>Калкулатор за печалба</h2>
+      <p class="explain">Най-точният калкулатор е дневното въвеждане, защото използва реалните продукти и фиксираните им разходи.</p>
+      <button class="btn" onclick="navigate('daily-input')">Отвори дневно въвеждане</button>
+    </div>
+  `;
+}
+
+function breakevenCalculator() {
+  return `
+    <div class="panel">
+      <h2>Break-even ROAS калкулатор</h2>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <label>Продажна цена<input id="be-price" type="number" step="0.01" oninput="calcBreakeven()"></label>
+        <label>Фиксирани разходи/бр.<input id="be-cost" type="number" step="0.01" oninput="calcBreakeven()"></label>
+      </div>
+      <h3 id="be-out" style="margin-top:14px">-</h3>
+      <p class="explain">Break-even ROAS показва точката, при която рекламният разход изяжда оставащата брутна печалба.</p>
+    </div>
+  `;
+}
+
+function calcRoas() {
+  const revenue = num(document.getElementById("calcRoas-a").value);
+  const spend = num(document.getElementById("calcRoas-b").value);
+  document.getElementById("calcRoas-out").textContent = spend ? `ROAS: ${(revenue / spend).toFixed(2)}` : "Добави рекламен разход";
+}
+
+function calcPoas() {
+  const profit = num(document.getElementById("calcPoas-a").value);
+  const spend = num(document.getElementById("calcPoas-b").value);
+  document.getElementById("calcPoas-out").textContent = spend ? `POAS: ${(profit / spend).toFixed(2)}` : "Добави рекламен разход";
+}
+
+function calcBreakeven() {
+  const price = num(document.getElementById("be-price").value);
+  const cost = num(document.getElementById("be-cost").value);
+  const maxCpa = price - cost;
+  const roas = maxCpa > 0 ? price / maxCpa : null;
+  document.getElementById("be-out").textContent = maxCpa > 0 ? `Макс. CPA: ${money(maxCpa)} | Break-even ROAS: ${roas.toFixed(2)}` : "Няма място за печеливш рекламен разход";
+}
+
+function settings() {
+  return layout(`
+    ${topbar("Настройки", "Настрой целите, които се използват за предупреждения и статуси. Основната валута е EUR.")}
+    <section class="panel">
+      <form onsubmit="saveSettings(event)">
+        <div class="form-grid">
+          ${settingInput("name", "Име на магазина", state.store.name, "text")}
+          ${settingInput("targetMargin", "Целеви марж %", state.store.targetMargin)}
+          ${settingInput("minPoas", "Минимален POAS", state.store.minPoas)}
+          ${settingInput("minRoas", "Минимален ROAS", state.store.minRoas)}
+          ${settingInput("maxCpa", "Максимален CPA", state.store.maxCpa)}
+          ${settingInput("maxReturnRate", "Макс. процент връщания %", state.store.maxReturnRate)}
+          ${settingInput("monthlyFixedExpenses", "Фиксирани месечни разходи EUR", state.store.monthlyFixedExpenses)}
+        </div>
+        <button class="btn" style="margin-top:16px">Запази настройките</button>
+      </form>
+    </section>
+  `);
+}
+
+function settingInput(name, label, value, type = "number") {
+  return `<label>${label}<input name="${name}" type="${type}" step="0.01" value="${value}"></label>`;
+}
+
+function saveSettings(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target).entries());
+  state.store = {
+    ...state.store,
+    name: data.name || state.store.name,
+    currency: "EUR",
+    targetMargin: num(data.targetMargin),
+    minPoas: num(data.minPoas),
+    minRoas: num(data.minRoas),
+    maxCpa: num(data.maxCpa),
+    maxReturnRate: num(data.maxReturnRate),
+    monthlyFixedExpenses: num(data.monthlyFixedExpenses)
+  };
+  saveState();
+  render();
+}
+
+function register() {
+  return investorHome();
+}
+
+function createWorkspace() {
+  state.store.name = document.getElementById("store-name").value || "Демо магазин";
+  state.store.currency = "EUR";
+  saveState();
+  navigate("dashboard");
+}
+
+function exportCsv() {
+  const rows = calculatedDays();
+  const header = ["Дата", "Продукти", "Посещения", "Бройки", "Конверсия", "Оборот", "Реклама", "CPA", "AOV", "ROAS", "Break-even ROAS", "Разходи продукти", "Месечни разходи", "Брутна печалба", "Чиста печалба", "POAS", "Марж", "Връщания", "Статус"];
+  const body = rows.map((row) => [
+    row.date,
+    row.productLines.map((line) => `${line.product.name} x${line.quantity}`).join("; "),
+    row.visits,
+    row.orders,
+    row.conversionRate,
+    row.revenue,
+    row.adSpendBase,
+    row.cpa,
+    row.aov,
+    row.roas,
+    row.breakevenRoas,
+    row.cogs,
+    row.fixedExpenseShare,
+    row.grossProfit,
+    row.netProfit,
+    row.poas,
+    row.margin,
+    row.returnRate,
+    row.status
+  ]);
+  const csv = [header, ...body].map((line) => line.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "profitboard-daily-report.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function render() {
+  const app = document.getElementById("app");
+  const routes = {
+    register,
+    demo: investorHome,
+    dashboard,
+    products: productsPage,
+    "daily-input": dailyInput,
+    "daily-tracking": dailyTracking,
+    reports: reportsPage,
+    imports: importsPage,
+    alerts: alertsPage,
+    calculators,
+    settings
+  };
+  app.innerHTML = (routes[route] || dashboard)();
+}
+
+render();
+</script>
+  </body>
+</html>
