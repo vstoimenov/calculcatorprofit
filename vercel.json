@@ -1,6 +1,6 @@
 {
   "installCommand": "echo \"Static investor demo: skipping dependency install\"",
-  "buildCommand": "node scripts/build-static-demo.mjs",
+  "buildCommand": "mkdir -p dist && cp preview/standalone.html dist/index.html",
   "outputDirectory": "dist",
   "rewrites": [
     {
